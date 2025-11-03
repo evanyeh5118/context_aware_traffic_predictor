@@ -55,7 +55,7 @@ class DatasetConvertor:
             for fingerName, idxsContext in self.idxsContext[direction].items():
                 dataUnit = DataUnit()
                 dataUnit.name = fingerName
-                dataUnit.setContextData(self.dfRaw.iloc[:, idxsContext].to_numpy())
+                dataUnit._setContextData(self.dfRaw.iloc[:, idxsContext].to_numpy())
                 dataUnit.timestamps = self.dfRaw.iloc[:, 0].to_numpy()
                 self.fingerDataUnits[f"{fingerName}_{self.DIRECTION_MAPPING[direction]}"] = dataUnit
 
@@ -106,9 +106,9 @@ class DatasetConvertor:
                 print(f"========== {fingerName.capitalize()} ============")
             
             dataUnit = self.fingerDataUnits[unitName]
-            dataUnit.resampleContextData()
-            dataUnit.applyDpDr(dbParameter=dbParameter, alpha=alpha, mode=mode)
-            dataUnit.interpolateCotextAfterDpDr()
+            dataUnit._resampleContextData()
+            dataUnit._applyDpDr(dbParameter=dbParameter, alpha=alpha, mode=mode)
+            dataUnit._interpolateCotextAfterDpDr()
             
             compression_rates[fingerName] = dataUnit.compressionRate
             
@@ -116,12 +116,4 @@ class DatasetConvertor:
                 print(f"{direction.capitalize()}: Compression rate: {compression_rates[fingerName]:.4f}")
         
         return compression_rates
-    '''
-    def saveDataset(self, folder: Union[str, Path]) -> None:
-        folder = Path(folder) if isinstance(folder, str) else folder
-        folder.mkdir(parents=True, exist_ok=True)
-        for fingerName in self.FINGER_NAMES:
-            for direction in self.DIRECTION_MAPPING.keys():
-                unitName = f"{fingerName}_{self.DIRECTION_MAPPING[direction]}"
-                self.fingerDataUnits[unitName].save(folder) 
-    '''
+    
