@@ -28,6 +28,23 @@ echo UDP CSV Data Relay System
 echo ========================================
 echo.
 
+REM Initialize environment for sender (values can be overridden by pre-set env vars)
+if not defined RELAY_IP set RELAY_IP=127.0.0.1
+if not defined RELAY_PORT set RELAY_PORT=5001
+if not defined REPLAY_REAL_TIMING set REPLAY_REAL_TIMING=1
+if not defined TIME_SCALE set TIME_SCALE=1.0
+if not defined VERBOSE set VERBOSE=1
+if not defined CSV_FILE (
+    for %%I in ("!SCRIPT_DIR!..\..\data\processed\dpdr\thumb_forward.csv") do set CSV_FILE=%%~fI
+)
+
+echo Sender ENV:
+echo   CSV_FILE=!CSV_FILE!
+echo   RELAY_IP=!RELAY_IP!  RELAY_PORT=!RELAY_PORT!
+echo   REPLAY_REAL_TIMING=!REPLAY_REAL_TIMING!  TIME_SCALE=!TIME_SCALE!
+echo   VERBOSE=!VERBOSE!
+echo.
+
 REM Start the receiver in a new window
 echo [1/3] Starting Receiver...
 start "UDP Receiver" cmd /k "cd /d !SCRIPT_DIR! && python receiver.py"

@@ -8,6 +8,9 @@ set -e
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# Path to Python components
+PY_DIR="${SCRIPT_DIR}/../../src/pcapfile_generation"
+
 # Check if Python 3 is installed
 if ! command -v python3 &> /dev/null; then
     echo "Error: Python 3 is not installed"
@@ -16,8 +19,8 @@ fi
 
 # Check if required Python files exist
 for file in receiver.py relay.py sender.py; do
-    if [ ! -f "$SCRIPT_DIR/$file" ]; then
-        echo "Error: $file not found in $SCRIPT_DIR"
+    if [ ! -f "$PY_DIR/$file" ]; then
+        echo "Error: $file not found in $PY_DIR"
         exit 1
     fi
 done
@@ -32,6 +35,35 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}UDP CSV Data Relay System${NC}"
 echo -e "${BLUE}========================================${NC}"
+echo ""
+
+# Initialize environment for sender (values can be overridden if already set)
+: "${RELAY_IP:=127.0.0.1}"
+: "${RELAY_PORT:=5001}"
+: "${REPLAY_REAL_TIMING:=1}"
+: "${TIME_SCALE:=1.0}"
+: "${VERBOSE:=0}"
+
+# Resolve default CSV_FILE if not provided
+if [ -z "${CSV_FILE}" ]; then
+    DEFAULT_CSV_REL="${SCRIPT_DIR}/../../data/processed/dpdr/thumb_backward.csv"
+    if command -v realpath >/dev/null 2>&1; then
+        CSV_FILE="$(realpath "${DEFAULT_CSV_REL}")"
+    else
+        # Fallback without realpath
+        pushd "${SCRIPT_DIR}" >/dev/null
+        CSV_FILE="$(pwd)/../../data/processed/dpdr/thumb_backward.csv"
+        popd >/dev/null
+    fi
+fi
+
+export RELAY_IP RELAY_PORT REPLAY_REAL_TIMING TIME_SCALE VERBOSE CSV_FILE
+
+echo "Sender ENV:"
+echo "  CSV_FILE=${CSV_FILE}"
+echo "  RELAY_IP=${RELAY_IP}  RELAY_PORT=${RELAY_PORT}"
+echo "  REPLAY_REAL_TIMING=${REPLAY_REAL_TIMING}  TIME_SCALE=${TIME_SCALE}"
+echo "  VERBOSE=${VERBOSE}"
 echo ""
 
 # Function to cleanup on exit
@@ -52,7 +84,7 @@ trap cleanup EXIT INT TERM
 
 # Start the receiver in the background
 echo -e "${GREEN}[1/3]${NC} Starting Receiver..."
-python3 "$SCRIPT_DIR/receiver.py" &
+python3 "$PY_DIR/receiver.py" &
 RECEIVER_PID=$!
 echo -e "${GREEN}✓ Receiver started (PID: $RECEIVER_PID)${NC}"
 
@@ -61,7 +93,7 @@ sleep 1
 
 # Start the relay in the background
 echo -e "${GREEN}[2/3]${NC} Starting Relay..."
-python3 "$SCRIPT_DIR/relay.py" &
+python3 "$PY_DIR/relay.py" &
 RELAY_PID=$!
 echo -e "${GREEN}✓ Relay started (PID: $RELAY_PID)${NC}"
 
@@ -70,7 +102,7 @@ sleep 1
 
 # Start the sender in the background
 echo -e "${GREEN}[3/3]${NC} Starting Sender..."
-python3 "$SCRIPT_DIR/sender.py" &
+python3 "$PY_DIR/sender.py" &
 SENDER_PID=$!
 echo -e "${GREEN}✓ Sender started (PID: $SENDER_PID)${NC}"
 
