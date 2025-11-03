@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from ..HelperFunctions import createDataLoaders
+from ..training.Helpers import createDataLoaders
 
 def evaluateModel(model, validData, batch_size=4096):
     validation_loader = createDataLoaders(batch_size, validData, shuffle=False)

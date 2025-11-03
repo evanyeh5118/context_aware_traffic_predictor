@@ -118,7 +118,6 @@ def trainModelHelper(model, criterion, optimizer, train_loader, test_loader, tra
 
 
 
-
 def createDataLoaders(batch_size, dataset, shuffle=True):
     # Convert all input data into tensors and stack them
     tensor_list = [torch.stack([torch.from_numpy(d).float() for d in data]) for data in dataset]

@@ -30,6 +30,7 @@ class TrainingConfig:
     lambda_transmission: float = 500.0
     lambda_context: float = 100.0
 
+
 @dataclass
 class ModelConfig:
     input_size: int

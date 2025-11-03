@@ -1,45 +1,18 @@
 import torch
-import torch.nn as nn
 import torch.optim as optim
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
 
-from .Seq2seqModel import Seq2Seq, CustomLossFunction
-from ..HelperFunctions import createDataLoaders, countModelParameters
+from ..config import TrainingConfig
 
-
-def trainModelByDefaultSetting(lenSource, lenTarget, trainData, testData, verbose=False):
-    (sources, targets) = trainData
-    parameters = {
-        "teacher_forcing_ratio" : 0.1,
-        "batch_size": 4096,
-        "hidden_size": 12,
-        "num_layers": 6,
-        "dropout_rate": 0.0,
-        "num_epochs": 50,
-        "learning_rate": 0.001,
-        "lenSource": lenSource,
-        "lenTarget": lenTarget,
-    }
-    parameters['input_size'] = sources.shape[2]
-    parameters['output_size'] = targets.shape[2]
-    best_model, avg_train_loss_history, avg_test_loss_history = trainModel(parameters, trainData, testData, verbose=verbose)
-    return best_model, avg_train_loss_history, avg_test_loss_history, parameters
-
-def trainModel(parameters, trainData, testData, verbose=False):
-    model, criterion, optimizer, train_loader, test_loader, device = prepareTraining(
-        parameters, trainData, testData, verbose=verbose)
-
-    best_model, avg_train_loss_history, avg_test_loss_history = trainModelHelper(
-        parameters, model, criterion, optimizer, device, train_loader, test_loader, verbose=verbose)
-    return best_model, avg_train_loss_history, avg_test_loss_history
-
-def trainModelHelper(parameters, model, criterion, optimizer, device, train_loader, test_loader, verbose=False):
-    num_epochs = parameters['num_epochs']
-    teacher_forcing_ratio = parameters['teacher_forcing_ratio']
+def trainModelHelper(model, criterion, optimizer, train_loader, test_loader, trainingConfig: TrainingConfig, verbose=False):
+    num_epochs = trainingConfig.num_epochs
+    teacher_forcing_ratio = trainingConfig.teacher_forcing_ratio
     #==============================================
     #============== Training ======================
     #==============================================
-
-    bestWeight = None
+    device = next(model.parameters()).device
+    best_model = None
     best_metric = float('inf')  # Set to a large value
     avg_train_loss_history = []
     avg_test_loss_history = []
@@ -97,12 +70,12 @@ def trainModelHelper(parameters, model, criterion, optimizer, device, train_load
 
     return bestWights, avg_train_loss_history, avg_test_loss_history
 
-def prepareTraining(parameters, trainData, testData, verbose=False):
+def prepareTraining(model, trainData, testData, trainingConfig: TrainingConfig, verbose=False):
     #==============================================
     #=============== Hyperparameters ==============
     #==============================================
-    batch_size = parameters['batch_size']
-    learning_rate = parameters['learning_rate']
+    batch_size = trainingConfig.batch_size
+    learning_rate = trainingConfig.learning_rate
 
     #==============================================
     #============== Create Dataloader =============
@@ -117,9 +90,7 @@ def prepareTraining(parameters, trainData, testData, verbose=False):
     #==============================================
     #============== Model Setup ===================
     #==============================================
-    model, device = createModel(parameters)
     size_model = countModelParameters(model)
-    model.to(device)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -128,21 +99,24 @@ def prepareTraining(parameters, trainData, testData, verbose=False):
     #==============================================
     if verbose:
         print(f"Size of train loader: {len(train_loader)}, Size of test loader: {len(test_loader)}")
-        print(f"Used device: {device}")
         print(f"Size of model: {size_model}")
         print(model)
 
-    return model, criterion, optimizer, train_loader, test_loader, device
+    return model, criterion, optimizer, train_loader, test_loader
 
-def createModel(parameters): 
-    inputFeatureSize = parameters['input_size']
-    outputFeatureSize = parameters['output_size']
-    hidden_size = parameters['hidden_size']
-    num_layers = parameters['num_layers']
-    dropout_rate = parameters['dropout_rate']
+def createDataLoaders(batch_size, dataset, shuffle=True):
+    # Convert all input data into tensors and stack them
+    tensor_list = [torch.stack([torch.from_numpy(d).float() for d in data]) for data in dataset]
+    
+    num_samples = tensor_list[0].shape[0]
+    assert all(t.shape[0] == num_samples for t in tensor_list), "All input tensors must have the same number of samples."
+    
+    # Create a dataset
+    dataset = TensorDataset(*tensor_list)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, pin_memory=True)
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = Seq2Seq(
-        inputFeatureSize, outputFeatureSize, hidden_size, num_layers, dropout_rate
-    ).to(device)
-    return model, device
+    return dataloader
+
+# Calculate total parameters
+def countModelParameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
