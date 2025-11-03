@@ -6,6 +6,8 @@ from .encoder import Encoder
 from .decoder import Decoder
 from ..config import ModelConfig
 
+from ...base.base_model import BaseModel
+
 def createModel(modelConfig: ModelConfig): 
     inputFeatureSize = modelConfig.input_size
     outputFeatureSize = modelConfig.output_size 
@@ -18,9 +20,9 @@ def createModel(modelConfig: ModelConfig):
     ).to(device)
     return model, device
 
-class Seq2Seq(nn.Module):
+class Seq2Seq(BaseModel):
     def __init__(self, input_dim, output_dim, hidden_dim, n_layers):
-        super(Seq2Seq, self).__init__()
+        BaseModel.__init__(self)
         self.encoder = Encoder(input_dim, hidden_dim, n_layers) 
         self.decoder = Decoder(output_dim, hidden_dim, n_layers)
 

@@ -24,7 +24,7 @@ class DatasetConfig:
 
 @dataclass
 class TrainingConfig:
-    num_epochs: int = 30
+    num_epochs: int = 10
     learning_rate: float = 0.005
     batch_size: int = 8192
     teacher_forcing_ratio: float = 0.2

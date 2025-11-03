@@ -7,6 +7,7 @@ from .CAdjuster import ContextAdjuster
 
 from .Helpers import _compute_poly_matrix, _compute_feature_length
 from ..config import ModelConfig
+from ...base.base_model import BaseModel
 
 def createModel(parameters: ModelConfig):
     len_source = parameters.len_source
@@ -27,11 +28,11 @@ def createModel(parameters: ModelConfig):
     )
     return model, device
 
-class TrafficPredictorContextAssisted(nn.Module):
+class TrafficPredictorContextAssisted(BaseModel):
     def __init__(self, 
                  input_size, hidden_size, output_size, num_classes,
                  len_source, len_target, dt, degree, device, num_layers=1, dropout_rate=0.5):
-        super(TrafficPredictorContextAssisted, self).__init__()  
+        BaseModel.__init__(self)  
         self.M = _compute_poly_matrix(len_source, len_target, dt, degree, device)
         self.len_dbf = _compute_feature_length(len_target+1)
         self.dbf2traffic = DeadFeaturesToTrafficLayer(

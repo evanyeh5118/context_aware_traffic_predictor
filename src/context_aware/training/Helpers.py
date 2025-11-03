@@ -33,7 +33,9 @@ def prepareTraining(model, trainData, testData, trainingConfig: TrainingConfig, 
     return criterion, optimizer, train_loader, test_loader
 
 
-def trainModelHelper(model, criterion, optimizer, train_loader, test_loader, trainingConfig, verbose=False):
+def trainModelHelper(
+    model, criterion, optimizer, train_loader, test_loader, trainingConfig, verbose=False
+):
     num_epochs = trainingConfig.num_epochs
     #==============================================
     #============== Training ======================
@@ -41,7 +43,6 @@ def trainModelHelper(model, criterion, optimizer, train_loader, test_loader, tra
     best_metric = float('inf')  # Set to a large value
     avg_train_loss_history = []
     avg_test_loss_history = []
-    best_model = None
 
     # Training Loop
     for epoch in range(num_epochs):
@@ -106,15 +107,11 @@ def trainModelHelper(model, criterion, optimizer, train_loader, test_loader, tra
                       f"Train Loss: {avg_train_loss:.4f}, "
                       f"Validation Loss: {avg_test_loss:.4f}, "
                       f"Validation Loss (Traffic): {avg_test_loss_traffic:.4f}")
-                
-        if avg_test_loss < best_metric:
-            bestWights = model.state_dict()  # Save model state
-            best_metric = avg_test_loss
 
         avg_train_loss_history.append(avg_train_loss)
         avg_test_loss_history.append(avg_test_loss)
     
-    return bestWights, avg_train_loss_history, avg_test_loss_history
+    return  model, avg_train_loss_history, avg_test_loss_history
 
 
 

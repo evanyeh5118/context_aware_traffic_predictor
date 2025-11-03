@@ -60,15 +60,11 @@ def trainModelHelper(model, criterion, optimizer, train_loader, test_loader, tra
                 print(f"Epoch [{epoch+1}/{num_epochs}], "
                     f"Train Loss: {avg_train_loss:.6f}, "
                     f"Validation Loss: {avg_test_loss:.6f}")
-        
-        if avg_test_loss < best_metric:
-            bestWights = model.state_dict()  # Save model state
-            best_metric = avg_test_loss
             
         avg_train_loss_history.append(avg_train_loss)
         avg_test_loss_history.append(avg_test_loss)
 
-    return bestWights, avg_train_loss_history, avg_test_loss_history
+    return model, avg_train_loss_history, avg_test_loss_history
 
 def prepareTraining(model, trainData, testData, trainingConfig: TrainingConfig, verbose=False):
     #==============================================
