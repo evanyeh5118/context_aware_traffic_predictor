@@ -116,3 +116,12 @@ class DatasetConvertor:
                 print(f"{direction.capitalize()}: Compression rate: {compression_rates[fingerName]:.4f}")
         
         return compression_rates
+    '''
+    def saveDataset(self, folder: Union[str, Path]) -> None:
+        folder = Path(folder) if isinstance(folder, str) else folder
+        folder.mkdir(parents=True, exist_ok=True)
+        for fingerName in self.FINGER_NAMES:
+            for direction in self.DIRECTION_MAPPING.keys():
+                unitName = f"{fingerName}_{self.DIRECTION_MAPPING[direction]}"
+                self.fingerDataUnits[unitName].save(folder) 
+    '''
