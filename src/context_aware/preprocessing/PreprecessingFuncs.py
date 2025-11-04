@@ -3,18 +3,37 @@ import numpy as np
 from .Helpers import FindLastTransmissionIdx, DiscretizedTraffic
 from ..config import DatasetConfig
 
+from .Helpers import normalizeColumns, interpolateContextData, smoothDataByFiltfilt
+
+def PreparingDataset(dataUnit, datasetConfig: DatasetConfig, verbose=True):
+    trainRatio = datasetConfig.train_ratio
+
+    train_size = int(trainRatio*dataUnit.dataLength)
+    dataUnitTrain = dataUnit[:train_size]
+    dataUnitTest = dataUnit[train_size:]
+
+    if verbose == True:
+        print(f"Train size: {dataUnitTrain.dataLength}, Test size: {dataUnitTest.dataLength}")
+
+    return (
+        PreparingDatasetHelper(dataUnitTrain, datasetConfig),
+        PreparingDatasetHelper(dataUnitTest, datasetConfig)
+    )
+
+
 def PreparingDatasetHelper(dataUnit, datasetConfig: DatasetConfig):
-    #numWindow = params['numWindow']
     lenSource = datasetConfig.len_source
     lenTarget = datasetConfig.len_target
     dataAugment = datasetConfig.data_augment
     smoothFc = datasetConfig.smooth_fc
+    smoothFs = 1 / dataUnit.Ts
     smoothOrder = datasetConfig.smooth_order
 
     lenDataset = dataUnit.dataLength
-    contextData = dataUnit.getContextDataProcessedAndSmoothed(smoothFc, smoothOrder)
-    contextDataNoSmooth = dataUnit.getContextDataProcessed()
     transmissionFlags = dataUnit.getTransmissionFlags()
+    timestamps = dataUnit.getTimestamps()
+    contextDataDpDr = dataUnit.getContextData()
+    contextDataNoSmooth, contextData = _PrePrecessing(contextDataDpDr, transmissionFlags, timestamps, smoothFc, smoothFs, smoothOrder)
 
     sources, targets, lastTranmittedContext, transmissionsVector, trafficStatesSource, trafficStatesTarget, sourcesNoSmooth = [], [], [], [], [], [], []
     if dataAugment == True:
@@ -45,21 +64,11 @@ def PreparingDatasetHelper(dataUnit, datasetConfig: DatasetConfig):
         np.array(sourcesNoSmooth)
     )
 
-def PreparingDataset(dataUnit, datasetConfig: DatasetConfig, verbose=True):
-    trainRatio = datasetConfig.train_ratio
-
-    train_size = int(trainRatio*dataUnit.dataLength)
-    dataUnitTrain = dataUnit[:train_size]
-    dataUnitTest = dataUnit[train_size:]
-
-    if verbose == True:
-        print(f"Train size: {dataUnitTrain.dataLength}, Test size: {dataUnitTest.dataLength}")
-
-    return (
-        PreparingDatasetHelper(dataUnitTrain, datasetConfig),
-        PreparingDatasetHelper(dataUnitTest, datasetConfig)
-    )
-
+def _PrePrecessing(contextData, transmissionFlags, timestamps, smoothFc, smoothFs, smoothOrder):
+    contextDataNoSmooth = interpolateContextData(transmissionFlags, contextData, timestamps)
+    contextData_ = smoothDataByFiltfilt(contextDataNoSmooth, smoothFc, smoothFs, smoothOrder)
+    contextDataSmoothed = normalizeColumns(contextData_)
+    return contextDataNoSmooth, contextDataSmoothed
 
 
 

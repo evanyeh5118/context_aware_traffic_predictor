@@ -72,18 +72,13 @@ class TrafficPredictorContextAssisted(BaseModel):
         traffic_est = self.reluOut(traffic_est)
         return traffic_est, traffic_class_est, transmission_est, motion_predict
 
-    '''
-    def forward_from_batchdata(self, batch):
-        (
-            sources, targets, last_trans_sources, 
-            _, _, _, _, sourcesNoSmooth
-        ) = (
-            data.to(self.device) for data in batch)
 
-        (
-            sources, targets, last_trans_sources, sourcesNoSmooth
-        ) = map(lambda x: x.permute(1, 0, 2), (sources, targets, last_trans_sources, sourcesNoSmooth))
-
-        return self.forward(sources, last_trans_sources, sourcesNoSmooth)
-    '''
-
+    def inference(self, src, last_trans_src, srcNoSmooth):
+        self.eval()
+        with torch.no_grad():
+            src, last_trans_src, srcNoSmooth = (torch.as_tensor(x, dtype=torch.float32, device=self.device) for x in (src, last_trans_src, srcNoSmooth))
+            src, last_trans_src, srcNoSmooth = (x.unsqueeze(0) if x.dim() == 2 else x for x in (src, last_trans_src, srcNoSmooth))
+            src, last_trans_src, srcNoSmooth = map(lambda x: x.permute(1, 0, 2), (src, last_trans_src, srcNoSmooth))
+            result = self.forward(src, last_trans_src, srcNoSmooth)
+        
+        return result[0].cpu().detach().numpy().reshape(-1)

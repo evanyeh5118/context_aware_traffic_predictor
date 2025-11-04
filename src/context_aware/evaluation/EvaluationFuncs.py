@@ -5,6 +5,9 @@ import numpy as np
 from ..training.Helpers import createDataLoaders
 
 def evaluateModel(traffic_predictor, test_data, batch_size=4096):
+    # Set model to evaluation mode (important for BatchNorm and Dropout)
+    traffic_predictor.eval()
+    
     # Create data loader
     validation_loader = createDataLoaders(batch_size=batch_size, dataset=test_data, shuffle=False)
     
@@ -19,28 +22,29 @@ def evaluateModel(traffic_predictor, test_data, batch_size=4096):
     contextTarget_actual, contextTarget_predicted = [], []
 
     # Iterate over validation data
-    for batch in validation_loader:
-        sources, targets, last_trans_sources, trafficsSource, trafficsTarget, classesDistribu, transmissions, sourcesNoSmooth = (data.to(device) for data in batch)
+    with torch.no_grad():  # Disable gradient computation for evaluation
+        for batch in validation_loader:
+            sources, targets, last_trans_sources, trafficsSource, trafficsTarget, classesDistribu, transmissions, sourcesNoSmooth = (data.to(device) for data in batch)
 
-        # Permute tensor dimensions for model input compatibility
-        sources, targets, last_trans_sources, sourcesNoSmooth = map(lambda x: x.permute(1, 0, 2), (sources, targets, last_trans_sources, sourcesNoSmooth))
+            # Permute tensor dimensions for model input compatibility
+            sources, targets, last_trans_sources, sourcesNoSmooth = map(lambda x: x.permute(1, 0, 2), (sources, targets, last_trans_sources, sourcesNoSmooth))
 
-        # Get model predictions
-        pred_trafficTarget, pred_classDistribu, pred_transmissions, pred_context = traffic_predictor(sources, last_trans_sources, sourcesNoSmooth)
+            # Get model predictions
+            pred_trafficTarget, pred_classDistribu, pred_transmissions, pred_context = traffic_predictor(sources, last_trans_sources, sourcesNoSmooth)
 
-        # Store results
-        transmissions_actual.append(transmissions.cpu().detach().numpy())
-        transmissions_predicted.append(pred_transmissions.cpu().detach().numpy())
+            # Store results
+            transmissions_actual.append(transmissions.cpu().detach().numpy())
+            transmissions_predicted.append(pred_transmissions.cpu().detach().numpy())
 
-        classDistribu_actual.append(classesDistribu.cpu().detach().numpy())
-        classDistribu_predicted.append(pred_classDistribu.cpu().detach().numpy())
+            classDistribu_actual.append(classesDistribu.cpu().detach().numpy())
+            classDistribu_predicted.append(pred_classDistribu.cpu().detach().numpy())
 
-        trafficSource_actual.append(trafficsSource.cpu().detach().numpy())
-        trafficTarget_actual.append(trafficsTarget.cpu().detach().numpy())
-        trafficTarget_predicted.append(pred_trafficTarget.cpu().detach().numpy())
+            trafficSource_actual.append(trafficsSource.cpu().detach().numpy())
+            trafficTarget_actual.append(trafficsTarget.cpu().detach().numpy())
+            trafficTarget_predicted.append(pred_trafficTarget.cpu().detach().numpy())
 
-        contextTarget_actual.append(targets.permute(1, 0, 2).cpu().detach().numpy())
-        contextTarget_predicted.append(pred_context.permute(1, 0, 2).cpu().detach().numpy())
+            contextTarget_actual.append(targets.permute(1, 0, 2).cpu().detach().numpy())
+            contextTarget_predicted.append(pred_context.permute(1, 0, 2).cpu().detach().numpy())
 
     # Concatenate results from all batches
     transmissions_actual = np.concatenate(transmissions_actual)
