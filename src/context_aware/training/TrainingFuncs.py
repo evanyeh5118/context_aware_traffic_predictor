@@ -8,8 +8,7 @@ def trainModel(
     trainData, 
     testData, 
     trainingConfig: TrainingConfig, 
-    verbose=False,
-    model_folder: str = None
+    verbose=False
 ):
     criterion, optimizer, train_loader, test_loader = prepareTraining(
         model, trainData, testData, trainingConfig, verbose=verbose)

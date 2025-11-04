@@ -20,5 +20,5 @@ class BaseModel(nn.Module, ABC):
     
     def load_checkpoint(self, path: str):
         """Load model checkpoint."""
-        checkpoint = torch.load(path)
+        checkpoint = torch.load(path, weights_only=True)
         self.load_state_dict(checkpoint["model_state_dict"])

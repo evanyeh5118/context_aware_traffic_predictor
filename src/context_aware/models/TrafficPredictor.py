@@ -43,6 +43,7 @@ class TrafficPredictorContextAssisted(BaseModel):
             input_size, 12, num_layers=num_layers, dropout=dropout_rate
         ).to(device)    
         self.reluOut = nn.ReLU()
+        self.device = device
         
     def _ComputeDeadbandFeatures(self, data):
         # data: (T, B, F)
@@ -71,7 +72,18 @@ class TrafficPredictorContextAssisted(BaseModel):
         traffic_est = self.reluOut(traffic_est)
         return traffic_est, traffic_class_est, transmission_est, motion_predict
 
-    
+    '''
+    def forward_from_batchdata(self, batch):
+        (
+            sources, targets, last_trans_sources, 
+            _, _, _, _, sourcesNoSmooth
+        ) = (
+            data.to(self.device) for data in batch)
 
+        (
+            sources, targets, last_trans_sources, sourcesNoSmooth
+        ) = map(lambda x: x.permute(1, 0, 2), (sources, targets, last_trans_sources, sourcesNoSmooth))
 
+        return self.forward(sources, last_trans_sources, sourcesNoSmooth)
+    '''
 
