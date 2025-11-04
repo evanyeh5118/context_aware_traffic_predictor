@@ -2,40 +2,59 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Union
 from pathlib import Path
+import json
 
 from .DatasetReader import DatasetReader
 from .Dataunit import DataUnit
 
 
 class DatasetConvertor:    
-    # Constants for finger names
-    FINGER_NAMES = ['thumb', 'index', 'middle']
-    DIRECTION_MAPPING = {"forward": "fr", "backward": "bk"}
-    
-    # Default context indices
-    DEFAULT_CONTEXT_FORWARD = {
-        "thumb": [1, 2, 3],
-        "index": [5, 6, 7],
-        "middle": [9, 10, 11],
-    }
-    DEFAULT_CONTEXT_BACKWARD = {
-        "thumb": [4],
-        "index": [8],
-        "middle": [12],
-    }
-    
-    def __init__(self, rawDatasetFolder: Union[str, Path]):
+    def __init__(self, rawDatasetFolder: Union[str, Path], configs):
         self.rawDatasetFolder = Path(rawDatasetFolder) if isinstance(rawDatasetFolder, str) else rawDatasetFolder
         self.dfRaw: Optional[pd.DataFrame] = None
         self.fingerDataUnits: Dict[str, DataUnit] = {}
         self.idxsContext: Dict[str, Dict[str, List[int]]] = {}
         self.datasetReader: Optional[DatasetReader] = None
+        
+        self.configs = configs
+        self.FINGER_NAMES = list(configs.get("FINGER_NAMES", []))
+        self.DIRECTION_MAPPING = dict(configs.get("DIRECTION_MAPPING", {}))
+        self.DEFAULT_CONTEXT_FORWARD = dict(configs.get("DEFAULT_CONTEXT_FORWARD", {}))
+        self.DEFAULT_CONTEXT_BACKWARD = dict(configs.get("DEFAULT_CONTEXT_BACKWARD", {}))
+
         self._initialize()
 
     def _initialize(self) -> None:
+        self._load_config_from_file()
         self._configuration()
         self._updateRawDataset(self.rawDatasetFolder)
         self._separateFingersDataByDirections()
+
+    def _load_config_from_file(self) -> None:
+        """Load configuration from experiments/config/dataset_convertor_config.json if available."""
+        try:
+            project_root = Path(__file__).resolve().parents[2]
+            config_path = project_root / "experiments" / "config" / "dataset_convertor_config.json"
+            if not config_path.exists():
+                return
+
+            with config_path.open("r", encoding="utf-8") as f:
+                cfg = json.load(f)
+
+            if isinstance(cfg.get("FINGER_NAMES"), list):
+                self.FINGER_NAMES = cfg["FINGER_NAMES"]
+
+            if isinstance(cfg.get("DIRECTION_MAPPING"), dict):
+                self.DIRECTION_MAPPING = cfg["DIRECTION_MAPPING"]
+
+            if isinstance(cfg.get("DEFAULT_CONTEXT_FORWARD"), dict):
+                self.DEFAULT_CONTEXT_FORWARD = cfg["DEFAULT_CONTEXT_FORWARD"]
+
+            if isinstance(cfg.get("DEFAULT_CONTEXT_BACKWARD"), dict):
+                self.DEFAULT_CONTEXT_BACKWARD = cfg["DEFAULT_CONTEXT_BACKWARD"]
+        except Exception:
+            # Silently fall back to defaults if any issue occurs while loading config
+            pass
 
     def _configuration(
             self, 

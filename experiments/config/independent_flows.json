@@ -1,0 +1,25 @@
+{
+  "FINGER_NAMES": [
+    "thumb", "index", "middle", "center"
+  ],
+  "DIRECTION_MAPPING": {
+    "forward": "fr",
+    "backward": "bk"
+  },
+  "DEFAULT_CONTEXT_FORWARD": {
+    "thumb": [1, 2, 3],
+    "index": [5, 6, 7],
+    "middle": [9, 10, 11],
+    "center": [13, 14, 15]
+  },
+  "DEFAULT_CONTEXT_BACKWARD": {
+    "thumb": [4],
+    "index": [8],
+    "middle": [12]
+  },
+  "dpdr_params": {
+    "forward": {"dbParameter": 0.01, "alpha": 0.01, "mode": "fixed"},
+    "backward": {"dbParameter": 0.1, "alpha": 0.01, "mode": "fixed"}
+  }
+}
+
