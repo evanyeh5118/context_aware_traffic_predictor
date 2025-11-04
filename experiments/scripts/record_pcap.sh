@@ -19,13 +19,49 @@ fi
 : "${DURATION:=10}"
 
 # Auto-detect interface if not provided
+# Since all components bind to 127.0.0.1 or 0.0.0.0, traffic is on loopback interface
 if [ -z "${INTERFACE}" ]; then
-  if command -v ip >/dev/null 2>&1; then
+  # First, try to detect loopback interface (priority since traffic is on 127.0.0.1)
+  if command -v tcpdump >/dev/null 2>&1; then
+    # Get list of interfaces from tcpdump
+    INTERFACE_LIST=$(tcpdump -D 2>/dev/null || true)
+    
+    if [ -n "${INTERFACE_LIST}" ]; then
+      # Try common loopback interface names/patterns
+      LOOPBACK_INTERFACE=""
+      
+      # Look for interfaces containing "loop" or "lo" (case insensitive)
+      LOOPBACK_LINE=$(echo "${INTERFACE_LIST}" | grep -i "loop\|^[0-9]*\.\s*lo\b" | head -1)
+      
+      if [ -n "${LOOPBACK_LINE}" ]; then
+        # Extract interface name/number - could be number or name
+        # Format: "1. lo" or "1. Loopback" or "1. Loopback Pseudo-Interface 1"
+        LOOPBACK_INTERFACE=$(echo "${LOOPBACK_LINE}" | sed -E 's/^[0-9]+\.\s*//' | awk '{print $1}')
+        
+        # If extraction failed, try using the number from the line
+        if [ -z "${LOOPBACK_INTERFACE}" ] || [ "${LOOPBACK_INTERFACE}" = "${LOOPBACK_LINE}" ]; then
+          LOOPBACK_INTERFACE=$(echo "${LOOPBACK_LINE}" | sed -E 's/\..*$//')
+        fi
+        
+        if [ -n "${LOOPBACK_INTERFACE}" ]; then
+          INTERFACE="${LOOPBACK_INTERFACE}"
+          echo "Detected loopback interface: ${INTERFACE}"
+        fi
+      fi
+    fi
+  fi
+  
+  # If still not found, try Linux-style detection
+  if [ -z "${INTERFACE}" ] && command -v ip >/dev/null 2>&1; then
     # Best effort: pick interface used for default route
     INTERFACE="$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i=="dev") {print $(i+1); exit}}')"
   fi
+  
+  # Final fallback: default loopback names
   if [ -z "${INTERFACE}" ]; then
-    # Fallback to loopback
+    echo "Warning: Could not auto-detect loopback interface. Attempting default 'lo'." >&2
+    echo "Available interfaces:" >&2
+    tcpdump -D 2>/dev/null | head -10 || echo "  (run 'tcpdump -D' to see all interfaces)" >&2
     INTERFACE="lo"
   fi
 fi
@@ -44,6 +80,11 @@ echo "BPF filter: ${BPF_FILTER}"
 if [ -n "${DURATION}" ]; then
   echo "Duration: ${DURATION}s"
 fi
+echo ""
+echo "Note: All components use loopback (127.0.0.1), so interface should be loopback."
+echo "Expected traffic flow:"
+echo "  Sender -> Relay (port 5000) -> Receiver (port 5001)"
+echo "  (or Sender -> Receiver directly if RELAY_PORT=5001)"
 echo ""
 
 # Cleanup handler
@@ -67,12 +108,21 @@ trap cleanup EXIT INT TERM
 echo "Starting tcpdump..."
 if [ -n "${DURATION}" ]; then
   # Use timeout to stop after DURATION seconds
-  timeout "${DURATION}"s tcpdump -i "${INTERFACE}" -w "${PCAP_FILE}" ${BPF_FILTER} &
+  # Quote BPF_FILTER to handle spaces correctly
+  timeout "${DURATION}"s tcpdump -i "${INTERFACE}" -w "${PCAP_FILE}" "${BPF_FILTER}" &
 else
-  tcpdump -i "${INTERFACE}" -w "${PCAP_FILE}" ${BPF_FILTER} &
+  # Quote BPF_FILTER to handle spaces correctly
+  tcpdump -i "${INTERFACE}" -w "${PCAP_FILE}" "${BPF_FILTER}" &
 fi
 TCPDUMP_PID=$!
 echo "tcpdump started (PID: ${TCPDUMP_PID})"
+# Give tcpdump a moment to start
+sleep 0.5
+# Check if tcpdump is still running (might have failed silently)
+if ! kill -0 "${TCPDUMP_PID}" 2>/dev/null; then
+  echo "Error: tcpdump failed to start. Check permissions (may need sudo) and interface name." >&2
+  exit 1
+fi
 
 # Launch the system
 echo "Starting launch_all.sh..."
@@ -95,5 +145,3 @@ else
 fi
 
 echo "All done."
-
-
