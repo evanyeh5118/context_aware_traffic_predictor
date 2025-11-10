@@ -74,7 +74,7 @@ This notebook:
 - Visualizes prediction results
 
 **Key parameters:**
-- `lenWindow`: Sequence window length (default: 50)
+- `lenWindow`: Sequence window length (default: 20)
 - `trainRatio`: Train/test split ratio
 - `dataAugment`: Enable data augmentation
 - `direction`: Motion direction to process

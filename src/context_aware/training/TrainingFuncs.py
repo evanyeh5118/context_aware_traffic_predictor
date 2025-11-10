@@ -8,6 +8,7 @@ def trainModel(
     trainData, 
     testData, 
     trainingConfig: TrainingConfig, 
+    model_path=None,
     verbose=False
 ):
     criterion, optimizer, train_loader, test_loader = prepareTraining(
@@ -15,6 +16,6 @@ def trainModel(
 
     model,avg_train_loss_history, avg_test_loss_history = trainModelHelper(
         model, criterion, optimizer, train_loader, test_loader, 
-        trainingConfig, verbose=verbose)
+        trainingConfig, verbose=verbose, model_path=model_path)
     return model, avg_train_loss_history, avg_test_loss_history
 

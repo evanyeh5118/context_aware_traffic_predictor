@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import random
 
 class DatasetReader:
     def __init__(self):
@@ -12,18 +13,21 @@ class DatasetReader:
     def configuration(self):
         self.taskIndexsList = ["0", "1", "2"]
         self.readFileIndexsList = ["0", "1", "2", "3", "4","5","6","7","8","9","10"]
+        self.file_tuple = [(task, file) for task in self.taskIndexsList for file in self.readFileIndexsList]
 
-    def readRawDataset(self, folderPath):
+    def readRawDataset(self, folderPath, randomFlag=False):
         self.dfRaw = None
-        for fileIndex in self.readFileIndexsList:
-            for taskIndex in self.taskIndexsList:
-                df_read = pd.read_csv(
-                    f"{folderPath}/Task{taskIndex}/exp{fileIndex}/motion.txt")
-                df_ms = processTimeseriesData(df_read)
-                if self.dfRaw is None:
-                    self.dfRaw = df_ms
-                else:
-                    self.dfRaw = concatenateDataframes(self.dfRaw, df_ms)
+        file_tuples = list(self.file_tuple)
+        if randomFlag:
+            random.shuffle(file_tuples)
+        for task, file in file_tuples:
+            df_read = pd.read_csv(
+                f"{folderPath}/Task{task}/exp{file}/motion.txt")
+            df_ms = processTimeseriesData(df_read)
+            if self.dfRaw is None:
+                self.dfRaw = df_ms
+            else:
+                self.dfRaw = concatenateDataframes(self.dfRaw, df_ms)
         self.dfRaw = removeOutlier(self.dfRaw)
         self.dfRawNormal = nomalization(self.dfRaw)
 

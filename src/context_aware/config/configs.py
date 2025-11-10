@@ -2,55 +2,54 @@
 Model-specific configuration classes.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import numpy as np
 
+
 @dataclass
-class DataProcessorConfig:
+class MetaConfig:
     dim_data: int = 0
     window_length: int = 0
     history_length: int = 100
-    smooth_fc: float = 3.0
-    smooth_order: int = 3
-    Ts : float = 0.01
-    min_vals: np.ndarray = np.array([])
-    max_vals: np.ndarray = np.array([])
+    smooth_fc: float = 1.5
+    degree: int = 3
+    Ts: float = 0.01  # Sampling period in seconds
+    min_vals: np.ndarray = field(default_factory=lambda: np.array([]))
+    max_vals: np.ndarray = field(default_factory=lambda: np.array([]))
+
     @classmethod
-    def initialize(cls, dim_data: int, window_length: int):
+    def initialize(cls, dim_data: int, window_length: int, 
+                   history_length: int = 100,
+                   smooth_fc: float = 3.0,
+                   degree: int = 3,
+                   Ts: float = 0.01,
+                   min_vals: np.ndarray = np.full(dim_data, -0.5),
+                   max_vals: np.ndarray = np.full(dim_data, 0.5)):
         return cls(
             dim_data=dim_data,
             window_length=window_length,
-            min_vals=np.full(dim_data, -0.5),
-            max_vals=np.full(dim_data, 0.5)
+            history_length=history_length,
+            smooth_fc=smooth_fc,
+            degree=degree,
+            Ts=Ts,
+            min_vals=min_vals,
+            max_vals=max_vals,
         )
+    
     def display(self):
-        print(f"DataProcessorConfig:")
+        """Display configuration parameters."""
+        print("================================================")
+        print(f"MetaConfig:")
         print(f"  dim_data: {self.dim_data}")
         print(f"  window_length: {self.window_length}")
         print(f"  history_length: {self.history_length}")
         print(f"  smooth_fc: {self.smooth_fc}")
-        print(f"  smooth_order: {self.smooth_order}")
+        print(f"  degree: {self.degree}")
         print(f"  Ts: {self.Ts}")
         print(f"  min_vals: {self.min_vals}")
         print(f"  max_vals: {self.max_vals}")
+        print("================================================")
 
-@dataclass
-class DatasetConfig:
-    len_source: int = 0
-    len_target: int = 0
-    train_ratio: float = 0.7
-    data_augment: bool = True
-    smooth_fc: float = 3.0
-    smooth_order: int = 3
-    max_val: float = 0.5
-    min_val: float = -0.5
-    @classmethod
-    def initialize(cls, len_window: int, data_augment: bool):
-        return cls(
-            len_source=len_window,
-            len_target=len_window,
-            data_augment=data_augment
-        )
 
 @dataclass
 class TrainingConfig:
@@ -60,29 +59,44 @@ class TrainingConfig:
     lambda_traffic_class: float = 100.0
     lambda_transmission: float = 500.0
     lambda_context: float = 50.0
+    
+    def __post_init__(self):
+        """Validate training configuration parameters."""
+        if self.num_epochs <= 0:
+            raise ValueError(f"num_epochs must be positive, got {self.num_epochs}")
+        if not (0 < self.learning_rate < 1):
+            raise ValueError(f"learning_rate must be in (0, 1), got {self.learning_rate}")
+        if self.batch_size <= 0:
+            raise ValueError(f"batch_size must be positive, got {self.batch_size}")
+        if self.lambda_traffic_class < 0:
+            raise ValueError(f"lambda_traffic_class must be non-negative")
+        if self.lambda_transmission < 0:
+            raise ValueError(f"lambda_transmission must be non-negative")
+        if self.lambda_context < 0:
+            raise ValueError(f"lambda_context must be non-negative")
 
 
 @dataclass
 class ModelConfig:
     input_size: int
     output_size: int
-    hidden_size: int = 128
+    len_source: int
+    len_target: int
+    num_classes: int
+    hidden_size: int = 64
     num_layers: int = 3
     dropout_rate: float = 0.8
-    dt: float = 0.01
     degree: int = 3
-    len_source: int = 0
-    len_target: int = 0
-    num_classes: int = 0
+    dt : float = 0.01
+
     @classmethod
-    def from_dataset(cls, datasetConfig: DatasetConfig, dataset):
-        source_train, _, _, _, _, _, transmission_train, _ = dataset
-        input_size = source_train.shape[2]
-        output_size = transmission_train.shape[1]
+    def from_meta_config(cls, metaConfig: MetaConfig):
         return cls(
-            input_size=input_size,
-            output_size=output_size,
-            len_source=datasetConfig.len_source,
-            len_target=datasetConfig.len_target,
-            num_classes=datasetConfig.len_target + 1,
+            input_size=metaConfig.dim_data,
+            output_size=metaConfig.window_length,
+            degree = metaConfig.degree,
+            dt = metaConfig.Ts,
+            len_source=metaConfig.window_length,
+            len_target=metaConfig.window_length,
+            num_classes=metaConfig.window_length + 1,
         )

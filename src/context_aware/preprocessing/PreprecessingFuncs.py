@@ -1,41 +1,25 @@
 import numpy as np
 
 from .Helpers import FindLastTransmissionIdx, DiscretizedTraffic
-from ..config import DatasetConfig
-from .filter import MultiDimExpSmoother
+from ..config import MetaConfig
+from .filter import MultiDimExpSmoother, ChunkSmoother
 
 from .Helpers import normalizeColumns, interpolateContextData, smoothDataByFiltfilt
 
-def PreparingDataset(dataUnit, datasetConfig: DatasetConfig, verbose=True):
-    trainRatio = datasetConfig.train_ratio
 
-    train_size = int(trainRatio*dataUnit.dataLength)
-    dataUnitTrain = dataUnit[:train_size]
-    dataUnitTest = dataUnit[train_size:]
-
-    if verbose == True:
-        print(f"Train size: {dataUnitTrain.dataLength}, Test size: {dataUnitTest.dataLength}")
-
-    return (
-        PreparingDatasetHelper(dataUnitTrain, datasetConfig),
-        PreparingDatasetHelper(dataUnitTest, datasetConfig)
-    )
-
-
-def PreparingDatasetHelper(dataUnit, datasetConfig: DatasetConfig):
-    lenSource = datasetConfig.len_source
-    lenTarget = datasetConfig.len_target
-    dataAugment = datasetConfig.data_augment
-    smoothFc = datasetConfig.smooth_fc
-    Ts = dataUnit.Ts
-    max_val = np.full(dataUnit.contextData.shape[1], datasetConfig.max_val)
-    min_val = np.full(dataUnit.contextData.shape[1], datasetConfig.min_val)
+def PreparingDataset(dataUnit, metaConfig: MetaConfig, dataAugment=True):
+    lenSource = metaConfig.window_length
+    lenTarget = metaConfig.window_length
+    smoothFc = metaConfig.smooth_fc
+    Ts = metaConfig.Ts
+    max_vals = metaConfig.max_vals
+    min_vals = metaConfig.min_vals
 
     lenDataset = dataUnit.dataLength
     transmissionFlags = dataUnit.getTransmissionFlags()
     timestamps = dataUnit.getTimestamps()
     contextDataDpDr = dataUnit.getContextData()
-    contextDataNoSmooth, contextData = _PreProcessing(contextDataDpDr, transmissionFlags, timestamps, smoothFc, Ts, max_val, min_val)
+    contextDataNoSmooth, contextData = _PreProcessing(contextDataDpDr, transmissionFlags, timestamps, smoothFc, Ts, max_vals, min_vals)
 
     sources, targets, lastTranmittedContext, transmissionsVector, trafficStatesSource, trafficStatesTarget, sourcesNoSmooth = [], [], [], [], [], [], []
     if dataAugment == True:
@@ -66,12 +50,14 @@ def PreparingDatasetHelper(dataUnit, datasetConfig: DatasetConfig):
         np.array(sourcesNoSmooth)
     )
 
-def _PreProcessing(contextData, transmissionFlags, timestamps, smoothFc, Ts, max_val, min_val):
+def _PreProcessing(contextData, transmissionFlags, timestamps, smoothFc, Ts, max_vals, min_vals):
     filter = MultiDimExpSmoother(fc=smoothFc, Ts=Ts, buffer_size=500)
+    #filter = ChunkSmoother(dim=contextData.shape[1])
     contextDataNoSmooth = interpolateContextData(transmissionFlags, contextData, timestamps)
     contextDataSmoothed = filter.filter(contextDataNoSmooth)
+    #contextDataSmoothed = filter.process(contextDataNoSmooth)
     #contextDataSmoothed = smoothDataByFiltfilt(contextDataNoSmooth, smoothFc, 1.0/Ts, 3)
-    contextDataSmoothed = normalizeColumns(contextDataSmoothed, max_val, min_val)
+    contextDataSmoothed = normalizeColumns(contextDataSmoothed, max_vals, min_vals)
     return contextDataNoSmooth, contextDataSmoothed
 
 

@@ -22,11 +22,13 @@ class DataUnit:
         self.dimFeatures = []
         self.dataLength = []
         self.compressionRate = []
+        self.lenWindow = 0
 
     def __getitem__(self, key):
         """Return a shallow copy with data sliced by key (e.g., slice or indices)."""
         dataUnitCopy = DataUnit()
 
+        dataUnitCopy.lenWindow = self.lenWindow
         dataUnitCopy.contextData = np.asarray(self.contextData)[key]
         dataUnitCopy.contextDataDpDr = np.asarray(self.contextDataDpDr)[key]
         dataUnitCopy.transmitionFlags = np.asarray(self.transmitionFlags)[key]
@@ -45,6 +47,17 @@ class DataUnit:
         dataUnitCopy.timestamps = np.asarray(self.timestamps)[key] - base_ts0
         return dataUnitCopy
 
+    def split(self, split_ratio: float):
+        if self.contextData is None:
+            raise ValueError("Context data is not set")
+        first_size = int(split_ratio*len(self.contextData))
+        first = self[:first_size]
+        second = self[first_size:]
+        return first, second
+
+    def getMaxMinMbnVals(self):
+        return np.max(self.contextData, axis=0), np.min(self.contextData, axis=0)
+
     def getContextData(self):
         """Return a copy of context data as a numpy array."""
         return np.asarray(self.contextData).copy()
@@ -62,18 +75,23 @@ class DataUnit:
         return np.asarray(self.transmitionFlags).copy()
 
     def display(self):
-        """Print a concise summary of the data unit."""
-        print(
-            f"Name: {self.name}, Ts:{self.Ts}, Data length:{self.dataLength}, "
-            f"Dim of context:{self.dimFeatures}, Compression rate:{self.compressionRate}"
-        )
+        """Display a summary of the data unit's properties."""
+        print("========= Data Unit Summary =========")
+        print(f"  Name:                {self.name}")
+        print(f"  Length Window:        {self.lenWindow}")
+        print(f"  Sampling Interval Ts: {self.Ts}")
+        print(f"  Data Length:          {self.dataLength}")
+        print(f"  Context Dimension:    {self.dimFeatures}")
+        print(f"  Compression Rate:     {self.compressionRate:.4f}")
+        print("=====================================")
 
-    def generateTrafficPattern(self, lenWindow):
+    def generateTrafficPattern(self):
         """Aggregate transmission flags over fixed windows.
 
         Parameters
         - lenWindow: window length in samples (int > 0)
         """
+        lenWindow = self.lenWindow
         if not isinstance(lenWindow, (int, np.integer)) or lenWindow <= 0:
             raise ValueError("lenWindow must be a positive integer")
         flags = np.asarray(self.transmitionFlags)
@@ -87,24 +105,21 @@ class DataUnit:
         return np.asarray(traffic_state)
 
     def saveDataUnit(self, filename):
-        if not hasattr(self, "contextDataDpDr"):
-            raise AttributeError("self.contextDataDpDr is not set. Call _applyDpDr() first.")
-        if not hasattr(self, "timestamps"):
-            raise AttributeError("self.timestamps is not set.")
+        contextData_arr = np.asarray(self.contextDataDpDr)
+        timestamps_arr = np.asarray(self.timestamps)
+        transmission_flags_arr = np.asarray(self.transmitionFlags)
 
-        timestamps = np.asarray(self.timestamps)
-        data = np.asarray(self.contextDataDpDr)
-        transmitionFlags = np.asarray(self.transmitionFlags)
-        print(self.name,timestamps.shape, data.shape, transmitionFlags.shape)
-
-        if data.shape[0] != timestamps.shape[0]:
-            raise ValueError("timestamps and contextDataDpDr must have the same number of rows.")
-
-        df = pd.DataFrame(data)
-        df.insert(0, "Time", timestamps)
-        df.insert(1, "Transmition Flags", transmitionFlags)
+        if not (len(contextData_arr) == len(timestamps_arr) == len(transmission_flags_arr)):
+            raise ValueError(
+                f"Length mismatch: contextDataDpDr({len(contextData_arr)}), "
+                f"timestamps({len(timestamps_arr)}), "
+                f"transmitionFlags({len(transmission_flags_arr)})"
+            )
+        df = pd.DataFrame(contextData_arr)
+        df.insert(0, "Time", timestamps_arr)
+        df.insert(1, "Transmition Flags", transmission_flags_arr)
         df.to_csv(filename, index=False)
-    
+
     # ====================================================================
     # ===================== For Dataset Processing =======================
     # ====================================================================
@@ -125,14 +140,10 @@ class DataUnit:
         (_, self.contextData) = resampleData(ts_arr, self.contextData, self.Ts)
 
     def applyDpDr(self, dbParameter=0.01, alpha=0.01, mode="fixed"):  # self.contextData -> self.contextDataDpDr
-        contextDataDpDr, transmitionFlags = DataReductionForDataUnit(
+        self.contextDataDpDr, self.transmitionFlags = DataReductionForDataUnit(
             self, dbParameter=dbParameter, alpha=alpha, mode=mode
         )
-        self.contextDataDpDr = contextDataDpDr
-        self.transmitionFlags = transmitionFlags
-        denom = self.transmitionFlags.shape[0] if hasattr(self.transmitionFlags, "shape") else len(self.transmitionFlags)
-        denom = denom if denom > 0 else 1
-        self.compressionRate = float(np.sum(self.transmitionFlags)) / float(denom)
+        self.compressionRate = float(np.sum(self.transmitionFlags)) / float(len(self.transmitionFlags))
 
 
     

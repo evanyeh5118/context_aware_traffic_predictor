@@ -86,3 +86,43 @@ class MultiDimExpSmoother:
         if was_1d:
             return y[:, 0]
         return y
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal.windows import gaussian  # <-- fixed import
+
+# === The chunk smoother from Option B ===
+class ChunkSmoother:
+    def __init__(self, dim: int, kernel = None):
+        if kernel is None:
+            kernel = gaussian(11, std=1.0)
+        self.kernel = kernel / kernel.sum()
+        self.W = len(kernel)
+        self.H = (self.W - 1) // 2
+        self.history_tail = None
+        self.dim = dim
+
+    def process(self, x_new: np.ndarray) -> np.ndarray:
+        x_new = np.asarray(x_new, dtype=np.float64)
+        if x_new.ndim == 1:
+            x_new = x_new[:, None]
+        L, D = x_new.shape
+        assert D == self.dim
+
+        if self.history_tail is None:
+            x_ext = x_new
+        else:
+            x_ext = np.vstack([self.history_tail, x_new])
+
+        y_ext = np.empty_like(x_ext)
+        for d in range(D):
+            y_ext[:, d] = np.convolve(x_ext[:, d], self.kernel, mode="same")
+
+        if self.history_tail is None:
+            y_new = y_ext
+        else:
+            y_new = y_ext[self.history_tail.shape[0]:]
+
+        self.history_tail = x_new[-min(L, self.H):].copy()
+        return y_new

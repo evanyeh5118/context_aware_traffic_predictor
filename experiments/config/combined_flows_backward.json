@@ -1,0 +1,6 @@
+{
+  "NAME":"combined_flows_backward",
+  "LEN_WINDOW": 20,
+  "CONTEXT_IDXS": [4, 8, 12],
+  "DPDR_PARAMS": {"dbParameter": 0.1, "alpha": 0.01, "mode": "fixed"}
+}

@@ -19,13 +19,13 @@ class DataProcessor:
     ):
         self.window_length = int(config.window_length)
         self.smooth_fc = float(config.smooth_fc)
-        self.smooth_order = int(config.smooth_order)
+        self.smooth_order = int(config.degree)
         self.Ts = float(config.Ts)
         self.smooth_fs = 1.0 / self.Ts
         self.min_vals = config.min_vals #shape: (num_features,)
         self.max_vals = config.max_vals #shape: (num_features,)
         self.denom = self.max_vals - self.min_vals
-        self.dim_data = config.dim_data
+        self.dim_data = int(config.dim_data)
         self.filter = MultiDimExpSmoother(fc=self.smooth_fc, Ts=self.Ts, buffer_size=500)
 
         self._context_buffer = deque(maxlen=self.window_length)

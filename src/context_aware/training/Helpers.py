@@ -34,7 +34,7 @@ def prepareTraining(model, trainData, testData, trainingConfig: TrainingConfig, 
 
 
 def trainModelHelper(
-    model, criterion, optimizer, train_loader, test_loader, trainingConfig, verbose=False
+    model, criterion, optimizer, train_loader, test_loader, trainingConfig, verbose=False, model_path=None
 ):
     num_epochs = trainingConfig.num_epochs
     #==============================================
@@ -110,6 +110,10 @@ def trainModelHelper(
 
         avg_train_loss_history.append(avg_train_loss)
         avg_test_loss_history.append(avg_test_loss)
+
+        if avg_test_loss < best_metric and model_path is not None:
+            best_metric = avg_test_loss
+            model.save_checkpoint(model_path)
     
     return  model, avg_train_loss_history, avg_test_loss_history
 
