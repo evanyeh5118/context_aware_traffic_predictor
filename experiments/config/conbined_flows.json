@@ -15,5 +15,7 @@
   "dpdr_params": {
     "forward": {"dbParameter": 0.01, "alpha": 0.01, "mode": "fixed"},
     "backward": {"dbParameter": 0.1, "alpha": 0.01, "mode": "fixed"}
-  }
+  },
+  "max_val": 2,
+  "min_val": -2
 }

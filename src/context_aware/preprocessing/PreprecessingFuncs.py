@@ -2,6 +2,7 @@ import numpy as np
 
 from .Helpers import FindLastTransmissionIdx, DiscretizedTraffic
 from ..config import DatasetConfig
+from .filter import MultiDimExpSmoother
 
 from .Helpers import normalizeColumns, interpolateContextData, smoothDataByFiltfilt
 
@@ -26,14 +27,15 @@ def PreparingDatasetHelper(dataUnit, datasetConfig: DatasetConfig):
     lenTarget = datasetConfig.len_target
     dataAugment = datasetConfig.data_augment
     smoothFc = datasetConfig.smooth_fc
-    smoothFs = 1 / dataUnit.Ts
-    smoothOrder = datasetConfig.smooth_order
+    Ts = dataUnit.Ts
+    max_val = np.full(dataUnit.contextData.shape[1], datasetConfig.max_val)
+    min_val = np.full(dataUnit.contextData.shape[1], datasetConfig.min_val)
 
     lenDataset = dataUnit.dataLength
     transmissionFlags = dataUnit.getTransmissionFlags()
     timestamps = dataUnit.getTimestamps()
     contextDataDpDr = dataUnit.getContextData()
-    contextDataNoSmooth, contextData = _PrePrecessing(contextDataDpDr, transmissionFlags, timestamps, smoothFc, smoothFs, smoothOrder)
+    contextDataNoSmooth, contextData = _PreProcessing(contextDataDpDr, transmissionFlags, timestamps, smoothFc, Ts, max_val, min_val)
 
     sources, targets, lastTranmittedContext, transmissionsVector, trafficStatesSource, trafficStatesTarget, sourcesNoSmooth = [], [], [], [], [], [], []
     if dataAugment == True:
@@ -64,10 +66,12 @@ def PreparingDatasetHelper(dataUnit, datasetConfig: DatasetConfig):
         np.array(sourcesNoSmooth)
     )
 
-def _PrePrecessing(contextData, transmissionFlags, timestamps, smoothFc, smoothFs, smoothOrder):
+def _PreProcessing(contextData, transmissionFlags, timestamps, smoothFc, Ts, max_val, min_val):
+    filter = MultiDimExpSmoother(fc=smoothFc, Ts=Ts, buffer_size=500)
     contextDataNoSmooth = interpolateContextData(transmissionFlags, contextData, timestamps)
-    contextData_ = smoothDataByFiltfilt(contextDataNoSmooth, smoothFc, smoothFs, smoothOrder)
-    contextDataSmoothed = normalizeColumns(contextData_)
+    contextDataSmoothed = filter.filter(contextDataNoSmooth)
+    #contextDataSmoothed = smoothDataByFiltfilt(contextDataNoSmooth, smoothFc, 1.0/Ts, 3)
+    contextDataSmoothed = normalizeColumns(contextDataSmoothed, max_val, min_val)
     return contextDataNoSmooth, contextDataSmoothed
 
 

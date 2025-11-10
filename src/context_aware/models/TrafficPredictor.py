@@ -61,7 +61,6 @@ class TrafficPredictorContextAssisted(BaseModel):
         return features_b
 
     def forward(self, src, last_trans_src, srcNoSmooth):
-        # src: [src_len, batch_size, input_dim]
         motion_predict = (self.M.unsqueeze(0) @ src.permute(2, 0, 1)).permute(1, 2, 0)
         motion_enhanced = self.contextAdjuster(srcNoSmooth.permute(1, 0, 2)).permute(1, 0, 2)
         motion_predict = motion_predict + motion_enhanced

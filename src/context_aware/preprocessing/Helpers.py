@@ -10,7 +10,7 @@ def interpolateContextData(flags, data, timestamps):  # self.contextDataDpDr -> 
         np.asarray(timestamps),
     )
 
-def normalizeColumns(data: np.ndarray) -> np.ndarray:
+def normalizeColumns(data: np.ndarray, max_val: float, min_val: float) -> np.ndarray:
     """Normalize columns to [0, 1], handling constant columns safely.
 
     Ensures output has shape (N, D).
@@ -20,12 +20,12 @@ def normalizeColumns(data: np.ndarray) -> np.ndarray:
         data_arr = data_arr[..., np.newaxis]
     if data_arr.size == 0:
         return data_arr
-    min_values = np.nanmin(data_arr, axis=0)
-    max_values = np.nanmax(data_arr, axis=0)
-    denom = max_values - min_values
+    #max_val = data_arr.max(axis=0)
+    #min_val = data_arr.min(axis=0)
+    denom = max_val - min_val
     # Avoid division by zero for constant columns
     denom[denom == 0.0] = 1.0
-    normalized = (data_arr - min_values) / denom
+    normalized = (data_arr - min_val) / denom
     return normalized
 
 def smoothDataByFiltfilt(x, fc, fs, order):
@@ -49,7 +49,7 @@ def interpolationData(flags, data, time):
     if data.ndim == 1:
         data = data[:, np.newaxis]  # Convert (T,) -> (T, 1)
     
-    T, N = data.shape  
+    _, N = data.shape  
 
     valid_indices = flags == 1  # Where flags are 0 (valid data)
     flagged_indices = flags == 0  # Where flags are 1 (to be interpolated)
@@ -57,9 +57,13 @@ def interpolationData(flags, data, time):
     valid_time = time[valid_indices]
     valid_data = data[valid_indices]  # Shape: (num_valid, N)
     interpolated_data = np.copy(data)
-    for i in range(N):
-        interp_func = interp1d(valid_time, valid_data[:, i], kind='linear', fill_value="extrapolate")
-        interpolated_data[flagged_indices, i] = interp_func(time[flagged_indices])
+    
+    # Only interpolate if we have at least 2 valid points
+    if len(valid_time) >= 2 and np.any(flagged_indices):
+        for i in range(N):
+            interp_func = interp1d(valid_time, valid_data[:, i], kind='linear', fill_value="extrapolate")
+            interpolated_data[flagged_indices, i] = interp_func(time[flagged_indices])
+    # If we have fewer than 2 valid points, we keep the forward-filled data as-is
 
     if interpolated_data.shape[1] == 1:
         interpolated_data = interpolated_data.flatten()
