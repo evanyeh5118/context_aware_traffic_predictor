@@ -54,11 +54,11 @@ class MetaConfig:
 @dataclass
 class TrainingConfig:
     num_epochs: int = 100
-    learning_rate: float = 0.005
+    learning_rate: float = 0.01
     batch_size: int = 8192
-    lambda_traffic_class: float = 250.0
-    lambda_transmission: float = 5000.0
-    lambda_context: float = 100.0
+    lambda_traffic_class: float = 500.0
+    lambda_transmission: float = 1000.0
+    lambda_context: float = 50.0
     
     def __post_init__(self):
         """Validate training configuration parameters."""
@@ -83,8 +83,8 @@ class ModelConfig:
     len_source: int
     len_target: int
     num_classes: int
-    hidden_size: int = 256
-    num_layers: int = 4
+    hidden_size: int = 64
+    num_layers: int = 5
     dropout_rate: float = 0.8
     degree: int = 3
     dt : float = 0.01

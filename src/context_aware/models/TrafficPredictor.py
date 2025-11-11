@@ -5,7 +5,7 @@ import torch.optim as optim
 from .D2T import DeadFeaturesToTrafficLayer
 from .CAdjuster import ContextAdjuster
 
-from .Helpers import _compute_poly_matrix_regularized, _compute_feature_length
+from .Helpers import _compute_poly_matrix, _compute_feature_length, _compute_poly_matrix_regularized
 from ..config import ModelConfig
 from ...base.base_model import BaseModel
 
@@ -33,8 +33,8 @@ class TrafficPredictorContextAssisted(BaseModel):
                  input_size, hidden_size, output_size, num_classes,
                  len_source, len_target, dt, degree, device, num_layers=1, dropout_rate=0.5):
         BaseModel.__init__(self)  
-        #self.M = _compute_poly_matrix(len_source, len_target, dt, degree, device)
-        self.M = _compute_poly_matrix_regularized(len_source, len_target, dt, degree, device, penalty=1e-4)
+        self.M = _compute_poly_matrix(len_source, len_target, dt, degree, device)
+        #self.M = _compute_poly_matrix_regularized(len_source, len_target, dt, degree, device, penalty=1e-4)
         self.len_dbf = _compute_feature_length(len_target+1)
         self.dbf2traffic = DeadFeaturesToTrafficLayer(
             self.len_dbf, hidden_size, output_size, num_classes, len_target, 

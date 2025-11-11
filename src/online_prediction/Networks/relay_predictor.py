@@ -18,7 +18,7 @@ if root_dir not in sys.path:
 from src.online_prediction import OnlinePredictor
 from src.context_aware.models import createModel
 
-configPath = "../../../experiments/config/combined_flows_forward.json"
+configPath = "../../../experiments/config/combined_flows_forward_20.json"
 modelFolder = "../../../data/models/context_aware"
 
 class RelayPredictor:
@@ -61,14 +61,14 @@ class RelayPredictor:
         name = config.get("NAME")
         len_window = config.get("LEN_WINDOW")
 
-        with open(f"{modelFolder}/{name}_lenWindow_{len_window}_modelConfig.pkl", "rb") as f:
+        with open(f"{modelFolder}/{name}_modelConfig.pkl", "rb") as f:
             modelConfig = pickle.load(f)
-        with open(f"{modelFolder}/{name}_lenWindow_{len_window}_metaConfig.pkl", "rb") as f:
+        with open(f"{modelFolder}/{name}_metaConfig.pkl", "rb") as f:
             metaConfig = pickle.load(f)
         metaConfig.display()
 
         model, _ = createModel(modelConfig)
-        model.load_checkpoint(f"{modelFolder}/{name}_lenWindow_{len_window}.pth")
+        model.load_checkpoint(f"{modelFolder}/{name}.pth")
         
         self.onlinePredictor = OnlinePredictor(model, metaConfig)
     

@@ -1,8 +1,0 @@
-{
-  "NAME":"combined_flows_forward",
-  "LEN_WINDOW": 20,
-  "TRAIN_RATIO": 0.7,
-  "CONTEXT_IDXS": [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15],
-  "DIM_DATA": 12,
-  "DPDR_PARAMS": {"dbParameter": 0.01, "alpha": 0.01, "mode": "fixed"}
-}

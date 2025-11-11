@@ -13,7 +13,7 @@ class OnlinePredictor:
         self.Ts = metaConfig.Ts
         self.window_length = metaConfig.window_length
         self.onlineGainOptimizer = OnlineGainOptimizer(
-            gain_init=1.0, lr=0.002, gain_min=0.0, gain_max=1.0)
+            gain_init=1.0, lr=0.001, gain_min=0.0, gain_max=1.5)
         
         self.gain = 1.0
         self.count = 0

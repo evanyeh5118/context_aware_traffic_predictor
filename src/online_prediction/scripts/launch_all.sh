@@ -47,13 +47,13 @@ echo ""
 
 # Resolve default CSV_FILE if not provided
 if [ -z "${CSV_FILE}" ]; then
-    DEFAULT_CSV_REL="${SCRIPT_DIR}/../../../data/processed/dpdr/combined_flows_forward.csv"
+    DEFAULT_CSV_REL="${SCRIPT_DIR}/../../../data/processed/dpdr/combined_flows_forward_20.csv"
     if command -v realpath >/dev/null 2>&1; then    
         CSV_FILE="$(realpath "${DEFAULT_CSV_REL}")"
     else
         # Fallback without realpath
         pushd "${SCRIPT_DIR}" >/dev/null
-        CSV_FILE="$(pwd)/../../../data/processed/dpdr/combined_flows_forward.csv"
+        CSV_FILE="$(pwd)/../../../data/processed/dpdr/combined_flows_forward_20.csv"
         popd >/dev/null
     fi
 fi
