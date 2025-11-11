@@ -20,3 +20,39 @@ def poly_fit_smoother(data: np.ndarray, degree: int = 3) -> np.ndarray:
         fitted[:, d] = np.polyval(coeffs, x)
 
     return fitted
+
+
+class OnlineGainOptimizer:
+    def __init__(self, gain_init=0.0, lr=0.01, gain_min=None, gain_max=None):
+        self.gain = float(gain_init)
+        self.lr = float(lr)
+        self.gain_min = gain_min
+        self.gain_max = gain_max
+
+    def update(self, x, x_):
+        x = np.asarray(x, dtype=float)
+        x_ = np.asarray(x_, dtype=float)
+
+        if x.shape != x_.shape:
+            raise ValueError(f"x and x_ must have the same shape, got {x.shape} vs {x_.shape}")
+
+        # Error: e = k * x_ - x
+        error = self.gain * x_ - x
+
+        # Gradient of mean loss w.r.t. k:
+        # grad = 2 * mean( x_ * (k * x_ - x) )
+        grad = 2.0 * np.mean(x_ * error)
+
+        # Gradient descent step
+        self.gain -= self.lr * grad
+
+        # Optional projection to [k_min, k_max]
+        if self.gain_min is not None:
+            self.gain = max(self.gain_min, self.gain)
+        if self.gain_max is not None:
+            self.gain = min(self.gain_max, self.gain)
+
+        return self.gain
+
+    def get_gain(self):
+        return self.gain
