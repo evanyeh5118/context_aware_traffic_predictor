@@ -1,7 +1,20 @@
 import socket
 import signal
+import json
+import pickle
 import sys
+import os
+# Add the project's root directory to sys.path, so that 'src' can be imported as a module
+current_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.abspath(os.path.join(current_dir, "../../../"))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
 
+from src.online_prediction import OnlinePredictor
+from src.context_aware.models import createModel
+
+configPath = "../../../experiments/config/combined_flows_forward.json"
+modelFolder = "../../../data/models/context_aware"
 
 class RelayPredictor:
     """UDP packet relay that forwards packets from one port to another."""
@@ -30,6 +43,24 @@ class RelayPredictor:
         # Register signal handlers
         signal.signal(signal.SIGTERM, self.signal_handler)
         signal.signal(signal.SIGINT, self.signal_handler)
+
+        self._initializePredictor()
+
+    def _initializePredictor(self):
+        config = json.load(open(configPath))
+        name = config.get("NAME")
+        len_window = config.get("LEN_WINDOW")
+
+        with open(f"{modelFolder}/{name}_lenWindow_{len_window}_modelConfig.pkl", "rb") as f:
+            modelConfig = pickle.load(f)
+        with open(f"{modelFolder}/{name}_lenWindow_{len_window}_metaConfig.pkl", "rb") as f:
+            metaConfig = pickle.load(f)
+        metaConfig.display()
+
+        model, _ = createModel(modelConfig)
+        model.load_checkpoint(f"{modelFolder}/{name}_lenWindow_{len_window}.pth")
+        
+        self.onlinePredictor = OnlinePredictor(model, metaConfig)
     
     def signal_handler(self, sig, frame):
         """Handle shutdown signals gracefully"""
@@ -81,5 +112,5 @@ class RelayPredictor:
 
 
 if __name__ == "__main__":
-    relay = Relay()
+    relay = RelayPredictor()
     relay.run()
