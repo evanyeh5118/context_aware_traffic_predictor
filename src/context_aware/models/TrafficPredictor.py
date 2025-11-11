@@ -5,7 +5,7 @@ import torch.optim as optim
 from .D2T import DeadFeaturesToTrafficLayer
 from .CAdjuster import ContextAdjuster
 
-from .Helpers import _compute_poly_matrix, _compute_poly_matrix_regularized, _compute_feature_length
+from .Helpers import _compute_poly_matrix_regularized, _compute_feature_length
 from ..config import ModelConfig
 from ...base.base_model import BaseModel
 

@@ -39,7 +39,7 @@ echo ""
 
 # Initialize environment for sender (values can be overridden if already set)
 : "${RELAY_IP:=127.0.0.1}"
-: "${RELAY_PORT:=5001}"
+: "${RELAY_PORT:=5000}"
 : "${REPLAY_REAL_TIMING:=1}"
 : "${TIME_SCALE:=1.0}"
 : "${VERBOSE:=0}"

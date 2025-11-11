@@ -18,8 +18,8 @@ CSV_FILE = os.environ.get(
     ),
 )
 RELAY_IP = os.environ.get("RELAY_IP", "127.0.0.1")
-# Align with receiver default port (5001)
-RELAY_PORT = int(os.environ.get("RELAY_PORT", "5001"))
+# Send to relay's listening port (relay forwards to receiver at 5001)
+RELAY_PORT = int(os.environ.get("RELAY_PORT", "5000"))
 
 # Replay timing: sleep based on Time deltas (scaled)
 REPLAY_REAL_TIMING = os.environ.get("REPLAY_REAL_TIMING", "1") == "1"
@@ -127,7 +127,8 @@ def send_csv_rows():
             if not should_transmit:
                 continue
 
-            message = ",".join(row)
+            # Only send payload columns (exclude Time and Transmission Flags)
+            message = ",".join(row[idx] for idx in payload_indices if idx < len(row))
             sock.sendto(message.encode(), (RELAY_IP, RELAY_PORT))
             sent_count += 1
             vprint(f"Sent {sent_count} (row {i}/{total_rows}): {message}")

@@ -34,8 +34,8 @@ def receive_packets():
                 payload = data.decode()
                 src_ip, src_port = addr
                 
-                print(f"Message {msg_count} received from {src_ip}:{src_port}")
-                print(f"Data: {payload}\n")
+                #print(f"Message {msg_count} received from {src_ip}:{src_port}")
+                #print(f"Data: {payload}\n")
             except socket.timeout:
                 continue
     
