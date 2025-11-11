@@ -10,8 +10,7 @@ from src.context_aware.preprocessing.Helpers import (
     interpolationData,
     normalizeColumns
 )
-from src.context_aware.preprocessing.filter import MultiDimExpSmoother
-from src.online_prediction.OnlineDataProcessor.Helper import poly_fit_smoother, OnlineGainOptimizer
+from .Helper import poly_fit_smoother
 
 class DataProcessor:
     def __init__(
@@ -25,15 +24,9 @@ class DataProcessor:
         self.max_vals = config.max_vals #shape: (num_features,)
         self.denom = self.max_vals - self.min_vals
         
-        #self.smooth_order = int(config.degree)
-        #self.smooth_fs = 1.0 / self.Ts
-        #self.filter = MultiDimExpSmoother(fc=self.smooth_fc, Ts=self.Ts, buffer_size=500)
-        self.gain_optimizer = OnlineGainOptimizer(gain_init=1.0, lr=0.01, gain_min=0.0, gain_max=1.0)
-
         self._context_buffer = deque(maxlen=self.window_length)
         self._timestamp_buffer = deque(maxlen=self.window_length)
         self._last_window_context = np.zeros(self.dim_data)
-
 
     def add_data_point(
         self,

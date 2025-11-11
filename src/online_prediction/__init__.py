@@ -1,2 +1,3 @@
-from .OnlineDataProcessor.dataProcessor import DataProcessor
-from .OnlineDataProcessor.Helper import OnlineGainOptimizer
+from .OnlinePredictor.onlinePredictor import OnlinePredictor
+from .OnlinePredictor.dataProcessor import DataProcessor
+from .OnlinePredictor.Helper import OnlineGainOptimizer
