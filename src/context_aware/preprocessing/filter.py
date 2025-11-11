@@ -96,7 +96,7 @@ from scipy.signal.windows import gaussian  # <-- fixed import
 class ChunkSmoother:
     def __init__(self, dim: int, kernel = None):
         if kernel is None:
-            kernel = gaussian(11, std=1.0)
+            kernel = gaussian(100, std=1.0)
         self.kernel = kernel / kernel.sum()
         self.W = len(kernel)
         self.H = (self.W - 1) // 2
@@ -108,6 +108,7 @@ class ChunkSmoother:
         if x_new.ndim == 1:
             x_new = x_new[:, None]
         L, D = x_new.shape
+
         assert D == self.dim
 
         if self.history_tail is None:

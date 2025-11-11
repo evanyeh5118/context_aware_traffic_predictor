@@ -5,7 +5,7 @@ import torch.optim as optim
 from .D2T import DeadFeaturesToTrafficLayer
 from .CAdjuster import ContextAdjuster
 
-from .Helpers import _compute_poly_matrix, _compute_feature_length
+from .Helpers import _compute_poly_matrix, _compute_poly_matrix_regularized, _compute_feature_length
 from ..config import ModelConfig
 from ...base.base_model import BaseModel
 
@@ -33,7 +33,8 @@ class TrafficPredictorContextAssisted(BaseModel):
                  input_size, hidden_size, output_size, num_classes,
                  len_source, len_target, dt, degree, device, num_layers=1, dropout_rate=0.5):
         BaseModel.__init__(self)  
-        self.M = _compute_poly_matrix(len_source, len_target, dt, degree, device)
+        #self.M = _compute_poly_matrix(len_source, len_target, dt, degree, device)
+        self.M = _compute_poly_matrix_regularized(len_source, len_target, dt, degree, device, penalty=1e-4)
         self.len_dbf = _compute_feature_length(len_target+1)
         self.dbf2traffic = DeadFeaturesToTrafficLayer(
             self.len_dbf, hidden_size, output_size, num_classes, len_target, 
@@ -44,6 +45,29 @@ class TrafficPredictorContextAssisted(BaseModel):
         ).to(device)    
         self.reluOut = nn.ReLU()
         self.device = device
+        self._initialize_weights()
+    
+    def _initialize_weights(self):
+        """
+        Initialize neural network parameters optimally using He initialization.
+        He initialization is optimal for networks with ReLU activations.
+        """
+        for module in self.modules():
+            if isinstance(module, (nn.Linear, nn.Conv1d, nn.Conv2d)):
+                # He initialization for weight (fan-in mode, suitable for ReLU)
+                nn.init.kaiming_normal_(module.weight, mode='fan_in', nonlinearity='relu')
+                # Zero initialization for bias
+                if module.bias is not None:
+                    nn.init.constant_(module.bias, 0)
+            elif isinstance(module, (nn.LSTM, nn.GRU)):
+                # Special initialization for recurrent layers
+                for name, param in module.named_parameters():
+                    if 'weight_ih' in name:  # input-hidden weights
+                        nn.init.kaiming_normal_(param, mode='fan_in', nonlinearity='relu')
+                    elif 'weight_hh' in name:  # hidden-hidden weights
+                        nn.init.orthogonal_(param)
+                    elif 'bias' in name:
+                        nn.init.constant_(param, 0)
         
     def _ComputeDeadbandFeatures(self, data):
         # data: (T, B, F)
@@ -80,4 +104,4 @@ class TrafficPredictorContextAssisted(BaseModel):
             src, last_trans_src, srcNoSmooth = map(lambda x: x.permute(1, 0, 2), (src, last_trans_src, srcNoSmooth))
             result = self.forward(src, last_trans_src, srcNoSmooth)
         
-        return result[0].cpu().detach().numpy().reshape(-1)
+        return result[0].cpu().detach().numpy().reshape(-1), result[3].cpu().detach().numpy()

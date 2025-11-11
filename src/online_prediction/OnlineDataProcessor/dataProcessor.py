@@ -11,6 +11,7 @@ from src.context_aware.preprocessing.Helpers import (
     normalizeColumns
 )
 from src.context_aware.preprocessing.filter import MultiDimExpSmoother
+from src.online_prediction.OnlineDataProcessor.Helper import poly_fit_smoother
 
 class DataProcessor:
     def __init__(
@@ -89,8 +90,8 @@ class DataProcessor:
         context_no_smooth, flags, timestamps_bin = self.get_window_data()
 
         context = interpolationData(flags, context_no_smooth, timestamps_bin)
-        context = self.filter.filter(context)
         context = normalizeColumns(context, self.max_vals, self.min_vals)
+        context = poly_fit_smoother(context, self.smooth_order)
         last_trans_sources = self._last_window_context.copy()
 
         if last_trans_sources.ndim == 1:
