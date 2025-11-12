@@ -11,9 +11,18 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Path to Python components
 PY_DIR="${SCRIPT_DIR}/../Networks"
 
+# Path to config file
+CONFIG_FILE="${SCRIPT_DIR}/config.yaml"
+
 # Check if Python 3 is installed
 if ! command -v python3 &> /dev/null; then
     echo "Error: Python 3 is not installed"
+    exit 1
+fi
+
+# Check if config file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Error: config.yaml not found in $SCRIPT_DIR"
     exit 1
 fi
 
@@ -37,25 +46,62 @@ echo -e "${BLUE}UDP CSV Data Relay System${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
-# Initialize environment for sender (values can be overridden if already set)
-: "${RELAY_IP:=127.0.0.1}"
-: "${RELAY_PORT:=5000}"
-: "${REPLAY_REAL_TIMING:=1}"
-: "${TIME_SCALE:=1.0}"
-: "${VERBOSE:=0}"
-: "${USE_PREDICTOR:=0}"
+# Function to read YAML config using Python
+read_config() {
+    python3 -c "
+import yaml
+import sys
+import os
 
-# Resolve default CSV_FILE if not provided
-if [ -z "${CSV_FILE}" ]; then
-    DEFAULT_CSV_REL="${SCRIPT_DIR}/../../../data/processed/dpdr/combined_flows_forward_30.csv"
-    if command -v realpath >/dev/null 2>&1; then    
-        CSV_FILE="$(realpath "${DEFAULT_CSV_REL}")"
-    else
-        # Fallback without realpath
-        pushd "${SCRIPT_DIR}" >/dev/null
-        CSV_FILE="$(pwd)/../../../data/processed/dpdr/combined_flows_forward_30.csv"
-        popd >/dev/null
-    fi
+try:
+    with open('$CONFIG_FILE', 'r') as f:
+        config = yaml.safe_load(f)
+    
+    # Extract values
+    relay_ip = config['relay']['ip']
+    relay_port = config['relay']['port']
+    replay_real_timing = config['replay']['real_timing']
+    time_scale = config['replay']['time_scale']
+    csv_file = config['data']['csv_file']
+    verbose = config['settings']['verbose']
+    use_predictor = config['settings']['use_predictor']
+    
+    # Resolve CSV file path (relative to script directory)
+    if not os.path.isabs(csv_file):
+        csv_file = os.path.abspath(os.path.join('$SCRIPT_DIR', csv_file))
+    
+    # Output as shell variable assignments
+    print(f'RELAY_IP=\"{relay_ip}\"')
+    print(f'RELAY_PORT=\"{relay_port}\"')
+    print(f'REPLAY_REAL_TIMING=\"{replay_real_timing}\"')
+    print(f'TIME_SCALE=\"{time_scale}\"')
+    print(f'CSV_FILE=\"{csv_file}\"')
+    print(f'VERBOSE=\"{verbose}\"')
+    print(f'USE_PREDICTOR=\"{use_predictor}\"')
+    
+except FileNotFoundError:
+    print('Error: config.yaml not found', file=sys.stderr)
+    sys.exit(1)
+except yaml.YAMLError as e:
+    print(f'Error parsing YAML: {e}', file=sys.stderr)
+    sys.exit(1)
+except KeyError as e:
+    print(f'Error: Missing key in config: {e}', file=sys.stderr)
+    sys.exit(1)
+except Exception as e:
+    print(f'Error reading config: {e}', file=sys.stderr)
+    sys.exit(1)
+"
+}
+
+# Load configuration from YAML (unless already set via environment variables)
+if [ -z "${RELAY_IP}" ]; then
+    echo "Loading configuration from config.yaml..."
+    eval "$(read_config)"
+else
+    echo "Using environment variables (config.yaml overridden)..."
+    # Still load defaults for any missing variables
+    eval "$(read_config)" 2>/dev/null || true
 fi
 
 export RELAY_IP RELAY_PORT REPLAY_REAL_TIMING TIME_SCALE VERBOSE CSV_FILE USE_PREDICTOR

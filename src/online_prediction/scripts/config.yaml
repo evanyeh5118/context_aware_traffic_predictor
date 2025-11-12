@@ -1,0 +1,21 @@
+# UDP CSV Data Relay System - Configuration File
+
+# Network Configuration
+relay:
+  ip: 127.0.0.1
+  port: 5000
+
+# Replay Settings
+replay:
+  real_timing: 1  # 0 = send as fast as possible, 1 = respect original timing
+  time_scale: 1.0  # Multiplier for replay speed (e.g., 2.0 = 2x faster, 0.5 = half speed)
+
+# Data Source
+data:
+  csv_file: "../../../data/processed/dpdr/combined_flows_forward_30.csv"  # Relative to scripts directory
+
+# Application Settings
+settings:
+  verbose: 0  # 0 = minimal output, 1 = verbose logging
+  use_predictor: 1  # 0 = relay.py (standard), 1 = relay_predictor.py (with ML predictions)
+
