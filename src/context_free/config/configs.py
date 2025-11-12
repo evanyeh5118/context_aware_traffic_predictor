@@ -17,11 +17,8 @@ class MetaConfig:
     Ts: float = 0.01  # Sampling period in seconds
 
     @classmethod
-    def initialize(cls, len_window: int, len_source: int, len_target: int = 1,
-                   dim_data: int = 1,
-                   train_ratio: float = 0.6,
-                   data_augment: bool = True,
-                   Ts: float = 0.01):
+    def initialize(cls, len_window=20, len_source=10, len_target=1,
+                   dim_data=1, train_ratio=0.6, data_augment=True, Ts=0.01):
         return cls(
             dim_data=dim_data,
             len_window=len_window,

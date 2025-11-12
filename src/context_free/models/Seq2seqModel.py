@@ -16,15 +16,16 @@ def createModel(modelConfig: ModelConfig):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = Seq2Seq(
-        inputFeatureSize, outputFeatureSize, hidden_size, num_layers
+        inputFeatureSize, outputFeatureSize, hidden_size, num_layers, device
     ).to(device)
     return model, device
 
 class Seq2Seq(BaseModel):
-    def __init__(self, input_dim, output_dim, hidden_dim, n_layers):
+    def __init__(self, input_dim, output_dim, hidden_dim, n_layers, device):
         BaseModel.__init__(self)
         self.encoder = Encoder(input_dim, hidden_dim, n_layers) 
         self.decoder = Decoder(output_dim, hidden_dim, n_layers)
+        self.device = device
 
     def forward(self, src, trg, teacher_forcing_ratio=0.5):
         # src: [src_len, batch_size, input_dim]
@@ -42,5 +43,15 @@ class Seq2Seq(BaseModel):
             input = trg[t].unsqueeze(0) if teacher_force else output.unsqueeze(0)
 
         return outputs
-    
 
+    def inference(self, src):
+        self.eval()
+        with torch.no_grad():
+            src = torch.as_tensor(src, dtype=torch.float32, device=self.device)
+            src = src.permute(1, 0, 2).to(self.device)
+            dummy_targets = torch.zeros(1, src.size(1), src.size(2)).to(self.device)
+            dummy_targets = dummy_targets.permute(1, 0, 2).to(self.device)
+            predictions = self.forward(src, dummy_targets, teacher_forcing_ratio=0.0)
+            return predictions
+
+        
