@@ -6,6 +6,7 @@ from ..config import MetaConfig
 class PreprocessingDataset:
     def __init__(self, metaConfig: MetaConfig):
         self.metaConfig = metaConfig    
+        self.lenWindow = self.metaConfig.len_window
         self.lenSource = self.metaConfig.len_source
         self.lenTarget = self.metaConfig.len_target
 
@@ -42,10 +43,10 @@ class PreprocessingDataset:
         return datasetC
 
     def _convertToTrafficState(self, transmitionFlags):
-        N_slot = int(np.floor((transmitionFlags.shape[0]) / self.lenSource))
+        N_slot = int(np.floor((transmitionFlags.shape[0]) / self.lenWindow))
         windowTraffic = []
         for i in range(N_slot - 1):
-            traffic_state = np.sum(transmitionFlags[i * self.lenSource:(i + 1) * self.lenSource])
+            traffic_state = np.sum(transmitionFlags[i * self.lenWindow:(i + 1) * self.lenWindow])
             windowTraffic.append(traffic_state)
         return np.array(windowTraffic)
 

@@ -39,8 +39,6 @@ class MetaConfig:
         print(f"  len_target: {self.len_target}")
         print(f"  train_ratio: {self.train_ratio}")
         print(f"  data_augment: {self.data_augment}")
-        print(f"  smooth_fc: {self.smooth_fc}")
-        print(f"  smooth_order: {self.smooth_order}")
         print(f"  Ts: {self.Ts}")
         print("================================================")
 

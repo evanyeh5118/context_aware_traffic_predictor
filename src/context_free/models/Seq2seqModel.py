@@ -45,13 +45,13 @@ class Seq2Seq(BaseModel):
         return outputs
 
     def inference(self, src):
+        # src: (len_source,) -> (len_source, 1, 1)
         self.eval()
         with torch.no_grad():
             src = torch.as_tensor(src, dtype=torch.float32, device=self.device)
-            src = src.permute(1, 0, 2).to(self.device)
-            dummy_targets = torch.zeros(1, src.size(1), src.size(2)).to(self.device)
-            dummy_targets = dummy_targets.permute(1, 0, 2).to(self.device)
+            src = src.unsqueeze(1).unsqueeze(2).to(self.device)
+            dummy_targets = torch.zeros(1, 1, 1).to(self.device)
             predictions = self.forward(src, dummy_targets, teacher_forcing_ratio=0.0)
-            return predictions
+            return predictions.detach().cpu().numpy().squeeze()
 
         

@@ -1,3 +1,2 @@
-from .OnlinePredictor.onlinePredictor import OnlinePredictor
-from .OnlinePredictor.dataProcessor import DataProcessor
-from .OnlinePredictor.Helper import OnlineGainOptimizer
+from .OnlinePredictor.context_aware.onlinePredictor import OnlinePredictor as ContextAwareOnlinePredictor
+from .OnlinePredictor.context_free.onlinePredictor import OnlinePredictor as ContextFreeOnlinePredictor
