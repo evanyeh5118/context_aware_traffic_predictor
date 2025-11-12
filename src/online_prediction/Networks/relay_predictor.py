@@ -19,7 +19,7 @@ from src.online_prediction import ContextAwareOnlinePredictor, ContextFreeOnline
 from src.context_aware.models import createModel as createModel_context_aware
 from src.context_free.models import createModel as createModel_context_free
 
-configPath = "../../../experiments/config/combined_flows_forward_20.json"
+configPath = "../../../experiments/config/combined_flows_forward_30.json"
 modelFolder_context_aware = "../../../data/models/context_aware"
 modelFolder_context_free = "../../../data/models/context_free"
 

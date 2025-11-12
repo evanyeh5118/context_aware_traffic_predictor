@@ -44,34 +44,8 @@ class MetaConfig:
 
 
 @dataclass
-class DatasetConfig:
-    len_window: int = 0
-    len_source: int = 10
-    len_target: int = 1
-    train_ratio: float = 0.6
-    data_augment: bool = True
-    
-    @classmethod
-    def initialize(cls, len_window: int, len_source: int, data_augment: bool):
-        return cls(
-            len_window=len_window,
-            len_source=len_source,
-            data_augment=data_augment
-        )
-    
-    @classmethod
-    def from_meta_config(cls, metaConfig: MetaConfig):
-        return cls(
-            len_window=metaConfig.len_window,
-            len_source=metaConfig.len_source,
-            len_target=metaConfig.len_target,
-            train_ratio=metaConfig.train_ratio,
-            data_augment=metaConfig.data_augment,
-        )
-
-@dataclass
 class TrainingConfig:
-    num_epochs: int = 10
+    num_epochs: int = 50
     learning_rate: float = 0.005
     batch_size: int = 8192
     teacher_forcing_ratio: float = 0.2
