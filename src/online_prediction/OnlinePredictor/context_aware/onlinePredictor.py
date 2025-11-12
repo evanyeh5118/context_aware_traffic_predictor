@@ -38,4 +38,4 @@ class OnlinePredictor:
             self.gain = self.onlineGainOptimizer.get_gain()
 
         self.last_predicted_traffic = traffic_predicted
-        return self.gain * traffic_predicted, traffic_recieved
+        return self.gain * traffic_predicted[0], traffic_recieved[0]

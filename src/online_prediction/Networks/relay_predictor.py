@@ -15,11 +15,13 @@ root_dir = os.path.abspath(os.path.join(current_dir, "../../../"))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from src.online_prediction import OnlinePredictor
-from src.context_aware.models import createModel
+from src.online_prediction import ContextAwareOnlinePredictor, ContextFreeOnlinePredictor
+from src.context_aware.models import createModel as createModel_context_aware
+from src.context_free.models import createModel as createModel_context_free
 
 configPath = "../../../experiments/config/combined_flows_forward_20.json"
-modelFolder = "../../../data/models/context_aware"
+modelFolder_context_aware = "../../../data/models/context_aware"
+modelFolder_context_free = "../../../data/models/context_free"
 
 class RelayPredictor:
     """UDP packet relay that forwards packets from one port to another."""
@@ -45,10 +47,13 @@ class RelayPredictor:
         self.shutdown_flag = False
         self.sock = None
         
-        self.onlinePredictor = None
-        self.last_prediction = None
+        self.onlinePredictor_context_aware = None
+        self.onlinePredictor_context_free = None
+        self.last_prediction_context_aware = None
+        self.last_prediction_context_free = None
         self.traffic_recieved_list = []
-        self.traffic_predicted_list = []
+        self.traffic_predicted_list_context_aware = []
+        self.traffic_predicted_list_context_free = []
         
         # Register signal handlers
         signal.signal(signal.SIGTERM, self.signal_handler)
@@ -61,84 +66,107 @@ class RelayPredictor:
         name = config.get("NAME")
         len_window = config.get("LEN_WINDOW")
 
-        with open(f"{modelFolder}/{name}_modelConfig.pkl", "rb") as f:
-            modelConfig = pickle.load(f)
-        with open(f"{modelFolder}/{name}_metaConfig.pkl", "rb") as f:
-            metaConfig = pickle.load(f)
-        metaConfig.display()
+        with open(f"{modelFolder_context_aware}/{name}_modelConfig.pkl", "rb") as f:
+            modelConfig_context_aware = pickle.load(f)
+        with open(f"{modelFolder_context_aware}/{name}_metaConfig.pkl", "rb") as f:
+            metaConfig_context_aware = pickle.load(f)
+        with open(f"{modelFolder_context_free}/{name}_modelConfig.pkl", "rb") as f:
+            modelConfig_context_free = pickle.load(f)
+        with open(f"{modelFolder_context_free}/{name}_metaConfig.pkl", "rb") as f:
+            metaConfig_context_free = pickle.load(f)
+        metaConfig_context_aware.display()
+        metaConfig_context_free.display()
 
-        model, _ = createModel(modelConfig)
-        model.load_checkpoint(f"{modelFolder}/{name}.pth")
+        model_context_aware, _ = createModel_context_aware(modelConfig_context_aware)
+        model_context_aware.load_checkpoint(f"{modelFolder_context_aware}/{name}.pth")
+        model_context_free, _ = createModel_context_free(modelConfig_context_free)
+        model_context_free.load_checkpoint(f"{modelFolder_context_free}/{name}.pth")
         
-        self.onlinePredictor = OnlinePredictor(model, metaConfig)
+        self.onlinePredictor_context_aware = ContextAwareOnlinePredictor(model_context_aware, metaConfig_context_aware)
+        self.onlinePredictor_context_free = ContextFreeOnlinePredictor(model_context_free, metaConfig_context_free)
     
     def signal_handler(self, sig, frame):
         """Handle shutdown signals gracefully"""
         self.shutdown_flag = True
         print("\nShutdown signal received")
 
-    def _onlinePredictor(self, payload):
+    def _updatePredictor(self, payload):
         payload = payload.split(",")
         payload = [float(x) for x in payload]
-        self.onlinePredictor.receive(payload)
-        traffic_predicted, traffic_recieved = self.onlinePredictor.predict()
-        traffic_predicted = np.round(traffic_predicted, 0).astype(int)
-        if self.last_prediction is not None:
+        self.onlinePredictor_context_aware.receive(payload)
+        self.onlinePredictor_context_free.receive_signal()
+        traffic_context_aware, traffic_recieved = self.onlinePredictor_context_aware.predict()
+        traffic_context_free, _ = self.onlinePredictor_context_free.predict()
+        traffic_context_aware = np.round(traffic_context_aware, 0).astype(int)
+        traffic_context_free = np.round(traffic_context_free, 0).astype(int)
+        if self.last_prediction_context_aware is not None and self.last_prediction_context_free is not None:
             self.traffic_recieved_list.append(traffic_recieved)
-            self.traffic_predicted_list.append(self.last_prediction)
-        self.last_prediction = traffic_predicted
+            self.traffic_predicted_list_context_aware.append(self.last_prediction_context_aware)
+            self.traffic_predicted_list_context_free.append(self.last_prediction_context_free)
+        self.last_prediction_context_aware = traffic_context_aware
+        self.last_prediction_context_free = traffic_context_free
 
     def _record(self):
-        if self.traffic_recieved_list or self.traffic_predicted_list:
-            # Create timestamp for filename
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            csv_filename = f"traffic_data_{timestamp}.csv"
-            plot_filename = f"traffic_plot_{timestamp}.png"
-            
-            output_dir = os.path.join(root_dir, "data", "trafficPrediction")
-            csv_path = os.path.join(output_dir, csv_filename)
-            plot_path = os.path.join(output_dir, plot_filename)
-            
-            # Ensure the directory exists
-            os.makedirs(output_dir, exist_ok=True)
-            
-            # Write data to CSV
-            with open(csv_path, 'w', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(['Index', 'Traffic_Received', 'Traffic_Predicted'])
-                
-                # Write rows (handle case where lists might have different lengths)
-                max_len = max(len(self.traffic_recieved_list), len(self.traffic_predicted_list))
-                for i in range(max_len):
-                    received = self.traffic_recieved_list[i] if i < len(self.traffic_recieved_list) else None
-                    predicted = self.traffic_predicted_list[i] if i < len(self.traffic_predicted_list) else None
-                    writer.writerow([i, received, predicted])
-            
-            print(f"Traffic data saved to: {csv_path}")
-            print(f"Total records saved: {max_len}")
-            
-            # Create and save plot
-            plt.figure(figsize=(12, 6))
-            
-            if self.traffic_recieved_list:
-                plt.plot(self.traffic_recieved_list, label='Traffic Received', 
-                        marker='o', linestyle='-', linewidth=2, markersize=4, alpha=0.7)
-            
-            if self.traffic_predicted_list:
-                plt.plot(self.traffic_predicted_list, label='Traffic Predicted', 
-                        marker='s', linestyle='--', linewidth=2, markersize=4, alpha=0.7)
-            
-            plt.xlabel('Time Step', fontsize=12)
-            plt.ylabel('Traffic', fontsize=12)
-            plt.title('Traffic Received vs Traffic Predicted', fontsize=14, fontweight='bold')
-            plt.legend(loc='best', fontsize=10)
-            plt.grid(True, alpha=0.3)
-            plt.tight_layout()
-            
-            plt.savefig(plot_path, dpi=300, bbox_inches='tight')
-            plt.close()
-            
-            print(f"Traffic plot saved to: {plot_path}")
+        # Create timestamp for filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        csv_filename = f"traffic_data_{timestamp}.csv"
+        plot_filename = f"traffic_plot_{timestamp}.png"
+        
+        output_dir = os.path.join(root_dir, "data", "trafficPrediction")
+        csv_path = os.path.join(output_dir, csv_filename)
+        plot_path = os.path.join(output_dir, plot_filename)
+        
+        # Ensure the directory exists
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Write data to CSV
+        with open(csv_path, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(
+                [
+                    'Index', 
+                    'Traffic_Received', 
+                    'Traffic_Predicted_Context_Aware', 
+                    'Traffic_Predicted_Context_Free',
+                ]
+            )
+            # Write rows (handle case where lists might have different lengths)
+            max_len = max(len(self.traffic_recieved_list), len(self.traffic_predicted_list_context_aware), len(self.traffic_predicted_list_context_free))
+            for i in range(max_len):
+                received = self.traffic_recieved_list[i] if i < len(self.traffic_recieved_list) else None
+                predicted_context_aware = self.traffic_predicted_list_context_aware[i] if i < len(self.traffic_predicted_list_context_aware) else None
+                predicted_context_free = self.traffic_predicted_list_context_free[i] if i < len(self.traffic_predicted_list_context_free) else None
+                writer.writerow([i, received, predicted_context_aware, predicted_context_free])
+        
+        print(f"Traffic data saved to: {csv_path}")
+        print(f"Total records saved: {max_len}")
+        
+        # Create and save plot
+        plt.figure(figsize=(12, 6))
+        
+        if self.traffic_recieved_list:
+            plt.plot(self.traffic_recieved_list, label='Traffic Received', 
+                    marker='o', linestyle='-', linewidth=2, markersize=4, alpha=0.7)
+        
+        if self.traffic_predicted_list_context_aware:
+            plt.plot(self.traffic_predicted_list_context_aware, label='Traffic Predicted Context Aware', 
+                    marker='s', linestyle='--', linewidth=2, markersize=4, alpha=0.7)
+        
+        if self.traffic_predicted_list_context_free:
+            plt.plot(self.traffic_predicted_list_context_free, label='Traffic Predicted Context Free', 
+                    marker='s', linestyle='--', linewidth=2, markersize=4, alpha=0.7)
+        
+        plt.xlabel('Time Step', fontsize=12)
+        plt.ylabel('Traffic', fontsize=12)
+        plt.title('Traffic Received vs Traffic Predicted Context Aware vs Traffic Predicted Context Free', fontsize=14, fontweight='bold')
+        plt.legend(loc='best', fontsize=10)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        
+        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        print(f"Traffic plot saved to: {plot_path}")
     
     def run(self):
         """Start the relay service."""
@@ -162,7 +190,7 @@ class RelayPredictor:
                     #==========================================================
                     #==================== Online Predictor ====================
                     #==========================================================
-                    self._onlinePredictor(payload)
+                    self._updatePredictor(payload)
                     #==========================================================
                     #==================== Print Info ==========================
                     #==========================================================
