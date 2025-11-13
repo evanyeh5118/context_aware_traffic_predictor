@@ -5,14 +5,16 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from ..config import TrainingConfig
 
-def trainModelHelper(model, criterion, optimizer, train_loader, test_loader, trainingConfig: TrainingConfig, verbose=False):
+def trainModelHelper(
+        model, criterion, optimizer, train_loader, test_loader, trainingConfig: TrainingConfig, 
+        verbose=False, model_path=None):
     num_epochs = trainingConfig.num_epochs
     teacher_forcing_ratio = trainingConfig.teacher_forcing_ratio
     #==============================================
     #============== Training ======================
     #==============================================
     device = next(model.parameters()).device
-    best_model = None
+    
     best_metric = float('inf')  # Set to a large value
     avg_train_loss_history = []
     avg_test_loss_history = []
@@ -63,6 +65,11 @@ def trainModelHelper(model, criterion, optimizer, train_loader, test_loader, tra
             
         avg_train_loss_history.append(avg_train_loss)
         avg_test_loss_history.append(avg_test_loss)
+
+        if avg_test_loss < best_metric:
+            best_metric = avg_test_loss
+            if model_path is not None:
+                model.save_checkpoint(model_path)
 
     return model, avg_train_loss_history, avg_test_loss_history
 

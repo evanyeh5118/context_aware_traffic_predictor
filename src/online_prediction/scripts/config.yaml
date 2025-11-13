@@ -12,10 +12,16 @@ replay:
 
 # Data Source
 data:
-  csv_file: "../../../data/processed/dpdr/combined_flows_forward_30.csv"  # Relative to scripts directory
+  csv_file: "../../../data/processed/dpdr/combined_flows_forward_20.csv"  # Relative to scripts directory
 
 # Application Settings
 settings:
   verbose: 0  # 0 = minimal output, 1 = verbose logging
   use_predictor: 1  # 0 = relay.py (standard), 1 = relay_predictor.py (with ML predictions)
+
+# ML Model Configuration (for relay_predictor.py)
+predictor:
+  config_path: "../../../experiments/config/combined_flows_forward_20.json"  # Relative to Networks directory
+  model_folder_context_aware: "../../../data/models/context_aware"  # Relative to Networks directory
+  model_folder_context_free: "../../../data/models/context_free"  # Relative to Networks directory
 

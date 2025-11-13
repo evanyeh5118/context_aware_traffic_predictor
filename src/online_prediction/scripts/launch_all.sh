@@ -66,9 +66,23 @@ try:
     verbose = config['settings']['verbose']
     use_predictor = config['settings']['use_predictor']
     
+    # Extract predictor configuration (optional)
+    config_path = config.get('predictor', {}).get('config_path', '')
+    model_folder_context_aware = config.get('predictor', {}).get('model_folder_context_aware', '')
+    model_folder_context_free = config.get('predictor', {}).get('model_folder_context_free', '')
+    
     # Resolve CSV file path (relative to script directory)
     if not os.path.isabs(csv_file):
         csv_file = os.path.abspath(os.path.join('$SCRIPT_DIR', csv_file))
+    
+    # Resolve predictor paths (relative to Networks directory)
+    py_dir = '$PY_DIR'
+    if config_path and not os.path.isabs(config_path):
+        config_path = os.path.abspath(os.path.join(py_dir, config_path))
+    if model_folder_context_aware and not os.path.isabs(model_folder_context_aware):
+        model_folder_context_aware = os.path.abspath(os.path.join(py_dir, model_folder_context_aware))
+    if model_folder_context_free and not os.path.isabs(model_folder_context_free):
+        model_folder_context_free = os.path.abspath(os.path.join(py_dir, model_folder_context_free))
     
     # Output as shell variable assignments
     print(f'RELAY_IP=\"{relay_ip}\"')
@@ -78,6 +92,9 @@ try:
     print(f'CSV_FILE=\"{csv_file}\"')
     print(f'VERBOSE=\"{verbose}\"')
     print(f'USE_PREDICTOR=\"{use_predictor}\"')
+    print(f'CONFIG_PATH=\"{config_path}\"')
+    print(f'MODEL_FOLDER_CONTEXT_AWARE=\"{model_folder_context_aware}\"')
+    print(f'MODEL_FOLDER_CONTEXT_FREE=\"{model_folder_context_free}\"')
     
 except FileNotFoundError:
     print('Error: config.yaml not found', file=sys.stderr)
@@ -105,6 +122,7 @@ else
 fi
 
 export RELAY_IP RELAY_PORT REPLAY_REAL_TIMING TIME_SCALE VERBOSE CSV_FILE USE_PREDICTOR
+export CONFIG_PATH MODEL_FOLDER_CONTEXT_AWARE MODEL_FOLDER_CONTEXT_FREE
 
 echo "Configuration:"
 echo "  CSV_FILE=${CSV_FILE}"
@@ -112,6 +130,13 @@ echo "  RELAY_IP=${RELAY_IP}  RELAY_PORT=${RELAY_PORT}"
 echo "  REPLAY_REAL_TIMING=${REPLAY_REAL_TIMING}  TIME_SCALE=${TIME_SCALE}"
 echo "  VERBOSE=${VERBOSE}"
 echo "  USE_PREDICTOR=${USE_PREDICTOR} (0=relay.py, 1=relay_predictor.py)"
+if [ "$USE_PREDICTOR" = "1" ]; then
+    echo ""
+    echo "Predictor Configuration:"
+    echo "  CONFIG_PATH=${CONFIG_PATH}"
+    echo "  MODEL_FOLDER_CONTEXT_AWARE=${MODEL_FOLDER_CONTEXT_AWARE}"
+    echo "  MODEL_FOLDER_CONTEXT_FREE=${MODEL_FOLDER_CONTEXT_FREE}"
+fi
 echo ""
 
 # Function to cleanup on exit

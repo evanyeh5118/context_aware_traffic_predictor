@@ -19,9 +19,19 @@ from src.online_prediction import ContextAwareOnlinePredictor, ContextFreeOnline
 from src.context_aware.models import createModel as createModel_context_aware
 from src.context_free.models import createModel as createModel_context_free
 
-configPath = "../../../experiments/config/combined_flows_forward_30.json"
-modelFolder_context_aware = "../../../data/models/context_aware"
-modelFolder_context_free = "../../../data/models/context_free"
+# Get configuration from environment variables (set by launch script)
+configPath = os.getenv(
+    'CONFIG_PATH', 
+    "../../../experiments/config/combined_flows_forward_30.json"
+)
+modelFolder_context_aware = os.getenv(
+    'MODEL_FOLDER_CONTEXT_AWARE',
+    "../../../data/models/context_aware"
+)
+modelFolder_context_free = os.getenv(
+    'MODEL_FOLDER_CONTEXT_FREE',
+    "../../../data/models/context_free"
+)
 
 class RelayPredictor:
     """UDP packet relay that forwards packets from one port to another."""
@@ -64,7 +74,6 @@ class RelayPredictor:
     def _initializePredictor(self):
         config = json.load(open(configPath))
         name = config.get("NAME")
-        len_window = config.get("LEN_WINDOW")
 
         with open(f"{modelFolder_context_aware}/{name}_modelConfig.pkl", "rb") as f:
             modelConfig_context_aware = pickle.load(f)
@@ -106,9 +115,18 @@ class RelayPredictor:
         self.last_prediction_context_aware = traffic_context_aware
         self.last_prediction_context_free = traffic_context_free
 
-    def _record(self):
+    def _save_config(self, timestamp):
+        config_filename = f"config_{timestamp}.json"
+        config_path = os.path.join(root_dir, "data", "trafficPrediction", config_filename)
+        #-----------------
+        config = json.load(open(configPath))
+        with open(config_path, 'w') as f:
+            json.dump(config, f)
+        print(f"Config saved to: {config_path}")
+
+    def _save_results(self, timestamp):
         # Create timestamp for filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        #timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         csv_filename = f"traffic_data_{timestamp}.csv"
         plot_filename = f"traffic_plot_{timestamp}.png"
         
@@ -214,11 +232,14 @@ class RelayPredictor:
             print(f"Error: {e}")
         finally:
             self.stop()
+
     
     def stop(self):
         """Stop the relay and close the socket."""
         # Save traffic data to CSV before closing 
-        self._record()
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self._save_results(timestamp)
+        self._save_config(timestamp)
         if self.sock:
             self.sock.close()
             self.sock = None

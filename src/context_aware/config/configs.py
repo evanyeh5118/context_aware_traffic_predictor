@@ -54,7 +54,7 @@ class MetaConfig:
 @dataclass
 class TrainingConfig:
     num_epochs: int = 100
-    learning_rate: float = 0.01
+    learning_rate: float = 0.005
     batch_size: int = 8192
     lambda_traffic_class: float = 500.0
     lambda_transmission: float = 1000.0

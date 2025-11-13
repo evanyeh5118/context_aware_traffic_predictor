@@ -86,8 +86,8 @@ class TrafficPredictorContextAssisted(BaseModel):
 
     def forward(self, src, last_trans_src, srcNoSmooth):
         motion_predict = (self.M.unsqueeze(0) @ src.permute(2, 0, 1)).permute(1, 2, 0)
-        motion_enhanced = self.contextAdjuster(srcNoSmooth.permute(1, 0, 2)).permute(1, 0, 2)
-        motion_predict = motion_predict + motion_enhanced
+        #motion_enhanced = self.contextAdjuster(srcNoSmooth.permute(1, 0, 2)).permute(1, 0, 2)
+        #motion_predict = motion_predict + motion_enhanced
         motion_predict =  torch.clamp(motion_predict, 0, 1)
         motion_feature = torch.cat([motion_predict, last_trans_src], dim=0)
         db_features = self._ComputeDeadbandFeatures(motion_feature)
