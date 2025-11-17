@@ -7,7 +7,7 @@ import os
 
 # Configuration
 # Default to DPDR forward trajectory CSV; can be overridden via env or argv
-CSV_FILE = os.environ.get("CSV_FILE", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "sender", "traffic_dataset.csv"))
+CSV_FILE = os.environ.get("CSV_FILE")
 RELAY_IP = os.environ.get("RELAY_IP", "127.0.0.1")
 # Send to relay's listening port (relay forwards to receiver at 5001)
 RELAY_PORT = int(os.environ.get("RELAY_PORT", "5000"))
@@ -19,7 +19,6 @@ VERBOSE = os.environ.get("VERBOSE", "1") == "1"
 
 # Global flag for graceful shutdown
 shutdown_flag = False
-
 
 def signal_handler(sig, frame):
     """Handle shutdown signals gracefully"""

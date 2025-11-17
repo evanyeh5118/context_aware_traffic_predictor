@@ -1,5 +1,5 @@
 from .dataProcessor import DataProcessor
-from ..Helper import OnlineGainOptimizer
+from .Helper import OnlineGainOptimizer
 
 class OnlinePredictor:
     def __init__(self, model, metaConfig):

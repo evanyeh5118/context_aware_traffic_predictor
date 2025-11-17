@@ -5,7 +5,7 @@ import random
 from .encoder import Encoder
 from .decoder import Decoder
 from ..config import ModelConfig
-from base.base_model import BaseModel
+from ..base.base_model import BaseModel
 
 def createModel(modelConfig: ModelConfig): 
     inputFeatureSize = modelConfig.input_size

@@ -1,7 +1,6 @@
 import time
 from collections import deque
-from typing import Optional, Tuple
-from context_free.config import MetaConfig
+from ..config import MetaConfig
 import numpy as np
 
 class DataProcessor:

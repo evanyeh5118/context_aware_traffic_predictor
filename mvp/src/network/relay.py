@@ -17,8 +17,8 @@ src_dir = os.path.join(mvp_root, "src")
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-from online_prediction.OnlinePredictor.context_free.onlinePredictor import OnlinePredictor
-from models import createModel
+from src.online_prediction import OnlinePredictor
+from src.models import createModel
 
 # Get configuration from environment variables (set by launch script)
 configPath = os.getenv(
