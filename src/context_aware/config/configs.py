@@ -2,8 +2,11 @@
 Model-specific configuration classes.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 import numpy as np
+import json
+from pathlib import Path
+from typing import Union
 
 
 @dataclass
@@ -49,6 +52,31 @@ class MetaConfig:
         print(f"  min_vals: {self.min_vals}")
         print(f"  max_vals: {self.max_vals}")
         print("================================================")
+    
+    def save(self, filepath: Union[str, Path]):
+        """Save configuration to JSON file."""
+        filepath = Path(filepath)
+        config_dict = asdict(self)
+        # Convert numpy arrays to lists for JSON serialization
+        config_dict['min_vals'] = self.min_vals.tolist()
+        config_dict['max_vals'] = self.max_vals.tolist()
+        
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        with open(filepath, 'w') as f:
+            json.dump(config_dict, f, indent=4)
+    
+    @classmethod
+    def load(cls, filepath: Union[str, Path]):
+        """Load configuration from JSON file."""
+        filepath = Path(filepath)
+        with open(filepath, 'r') as f:
+            config_dict = json.load(f)
+        
+        # Convert lists back to numpy arrays
+        config_dict['min_vals'] = np.array(config_dict['min_vals'])
+        config_dict['max_vals'] = np.array(config_dict['max_vals'])
+        
+        return cls(**config_dict)
 
 @dataclass
 class ModelConfig:
@@ -75,6 +103,24 @@ class ModelConfig:
             len_target=metaConfig.window_length,
             num_classes=metaConfig.window_length + 1,
         )
+    
+    def save(self, filepath: Union[str, Path]):
+        """Save configuration to JSON file."""
+        filepath = Path(filepath)
+        config_dict = asdict(self)
+        
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        with open(filepath, 'w') as f:
+            json.dump(config_dict, f, indent=4)
+    
+    @classmethod
+    def load(cls, filepath: Union[str, Path]):
+        """Load configuration from JSON file."""
+        filepath = Path(filepath)
+        with open(filepath, 'r') as f:
+            config_dict = json.load(f)
+        
+        return cls(**config_dict)
 
 
 @dataclass
@@ -100,6 +146,24 @@ class TrainingConfig:
             raise ValueError(f"lambda_transmission must be non-negative")
         if self.lambda_context < 0:
             raise ValueError(f"lambda_context must be non-negative")
+    
+    def save(self, filepath: Union[str, Path]):
+        """Save configuration to JSON file."""
+        filepath = Path(filepath)
+        config_dict = asdict(self)
+        
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        with open(filepath, 'w') as f:
+            json.dump(config_dict, f, indent=4)
+    
+    @classmethod
+    def load(cls, filepath: Union[str, Path]):
+        """Load configuration from JSON file."""
+        filepath = Path(filepath)
+        with open(filepath, 'r') as f:
+            config_dict = json.load(f)
+        
+        return cls(**config_dict)
 
 
 

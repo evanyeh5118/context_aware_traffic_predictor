@@ -1,0 +1,13 @@
+{
+    "input_size": 12,
+    "output_size": 30,
+    "len_source": 30,
+    "len_target": 30,
+    "num_classes": 31,
+    "hidden_size": 128,
+    "num_layers": 4,
+    "dropout_rate": 0.8,
+    "degree": 3,
+    "dt": 0.01,
+    "flag_context_adjust": true
+}
