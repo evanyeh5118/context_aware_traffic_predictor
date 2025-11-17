@@ -8,6 +8,7 @@ import csv
 import numpy as np
 from datetime import datetime
 import matplotlib.pyplot as plt
+import time
 
 # Add the project's root directory to sys.path, so that 'src' can be imported as a module
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -31,6 +32,10 @@ modelFolder_context_aware = os.getenv(
 modelFolder_context_free = os.getenv(
     'MODEL_FOLDER_CONTEXT_FREE',
     "../../../data/models/context_free"
+)
+verbose = os.getenv(
+    'verbose',
+    0
 )
 
 class RelayPredictor:
@@ -64,6 +69,7 @@ class RelayPredictor:
         self.traffic_recieved_list = []
         self.traffic_predicted_list_context_aware = []
         self.traffic_predicted_list_context_free = []
+        self.last_trigger_time = None
         
         # Register signal handlers
         signal.signal(signal.SIGTERM, self.signal_handler)
@@ -93,7 +99,9 @@ class RelayPredictor:
         
         self.onlinePredictor_context_aware = ContextAwareOnlinePredictor(model_context_aware, metaConfig_context_aware)
         self.onlinePredictor_context_free = ContextFreeOnlinePredictor(model_context_free, metaConfig_context_free)
-    
+        self.trigger_interval = config.get("SAMPLING_TIME")*config.get("LEN_WINDOW")
+        self.last_trigger_time = time.time()
+
     def signal_handler(self, sig, frame):
         """Handle shutdown signals gracefully"""
         self.shutdown_flag = True
@@ -104,6 +112,8 @@ class RelayPredictor:
         payload = [float(x) for x in payload]
         self.onlinePredictor_context_aware.receive(payload)
         self.onlinePredictor_context_free.receive_signal()
+
+    def _triggerPredictor(self):
         traffic_context_aware, traffic_recieved = self.onlinePredictor_context_aware.predict()
         traffic_context_free, _ = self.onlinePredictor_context_free.predict()
         traffic_context_aware = np.round(traffic_context_aware, 0).astype(int)
@@ -203,21 +213,25 @@ class RelayPredictor:
                     #==================== Receive Data =========================
                     #==========================================================
                     data, addr = self.sock.recvfrom(self.buffer_size)
-                    payload = data.decode()
                     src_ip, src_port = addr
+                    payload = data.decode()
+                    self._updatePredictor(payload)
                     #==========================================================
                     #==================== Online Predictor ====================
                     #==========================================================
-                    self._updatePredictor(payload)
+                    if time.time() - self.last_trigger_time >= self.trigger_interval:
+                        self.last_trigger_time = time.time()
+                        self._triggerPredictor()
                     #==========================================================
                     #==================== Print Info ==========================
                     #==========================================================
                     # Print received packet info and predicted traffic
-                    print(f"--- Packet Received ---")
-                    print(f"Source IP: {src_ip}:{src_port}")
-                    print(f"Destination IP: {self.listen_ip}:{self.listen_port}")
-                    print(f"Payload: {payload}")
-                    print(f"--- Forwarding ---\n")
+                    if verbose:
+                        print(f"--- Packet Received ---")
+                        print(f"Source IP: {src_ip}:{src_port}")
+                        print(f"Destination IP: {self.listen_ip}:{self.listen_port}")
+                        print(f"Payload: {payload}")
+                        print(f"--- Forwarding ---\n")
                     #==========================================================
                     #==================== Forwarding =========================
                     #==========================================================

@@ -20,18 +20,21 @@ def createModel(parameters: ModelConfig):
     dropout_rate = parameters.dropout_rate
     dt = parameters.dt
     degree = parameters.degree
+    flag_context_adjust = parameters.flag_context_adjust    
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = TrafficPredictorContextAssisted(
         input_size, hidden_size, output_size, num_classes, len_source, len_target, 
-        dt, degree, device, num_layers=num_layers, dropout_rate=dropout_rate
+        dt, degree, device, num_layers=num_layers, 
+        dropout_rate=dropout_rate, flag_context_adjust=flag_context_adjust
     )
     return model, device
 
 class TrafficPredictorContextAssisted(BaseModel):
     def __init__(self, 
                  input_size, hidden_size, output_size, num_classes,
-                 len_source, len_target, dt, degree, device, num_layers=1, dropout_rate=0.5):
+                 len_source, len_target, dt, degree, device, num_layers=1, 
+                 dropout_rate=0.5, flag_context_adjust=True):
         BaseModel.__init__(self)  
         self.M = _compute_poly_matrix(len_source, len_target, dt, degree, device)
         #self.M = _compute_poly_matrix_regularized(len_source, len_target, dt, degree, device, penalty=1e-4)
@@ -44,7 +47,9 @@ class TrafficPredictorContextAssisted(BaseModel):
             input_size, 12, num_layers=num_layers, dropout=dropout_rate
         ).to(device)    
         self.reluOut = nn.ReLU()
+
         self.device = device
+        self.flag_context_adjust = flag_context_adjust
         self._initialize_weights()
     
     def _initialize_weights(self):
@@ -86,8 +91,9 @@ class TrafficPredictorContextAssisted(BaseModel):
 
     def forward(self, src, last_trans_src, srcNoSmooth):
         motion_predict = (self.M.unsqueeze(0) @ src.permute(2, 0, 1)).permute(1, 2, 0)
-        #motion_enhanced = self.contextAdjuster(srcNoSmooth.permute(1, 0, 2)).permute(1, 0, 2)
-        #motion_predict = motion_predict + motion_enhanced
+        if self.flag_context_adjust:
+            motion_enhanced = self.contextAdjuster(srcNoSmooth.permute(1, 0, 2)).permute(1, 0, 2)
+            motion_predict = motion_predict + motion_enhanced
         motion_predict =  torch.clamp(motion_predict, 0, 1)
         motion_feature = torch.cat([motion_predict, last_trans_src], dim=0)
         db_features = self._ComputeDeadbandFeatures(motion_feature)

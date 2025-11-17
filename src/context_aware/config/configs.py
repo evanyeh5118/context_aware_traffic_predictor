@@ -50,15 +50,41 @@ class MetaConfig:
         print(f"  max_vals: {self.max_vals}")
         print("================================================")
 
+@dataclass
+class ModelConfig:
+    input_size: int
+    output_size: int
+    len_source: int
+    len_target: int
+    num_classes: int
+    hidden_size: int = 128
+    num_layers: int = 4
+    dropout_rate: float = 0.8
+    degree: int = 3
+    dt : float = 0.01
+    flag_context_adjust: bool = True
+
+    @classmethod
+    def from_meta_config(cls, metaConfig: MetaConfig):
+        return cls(
+            input_size=metaConfig.dim_data,
+            output_size=metaConfig.window_length,
+            degree = metaConfig.degree,
+            dt = metaConfig.Ts,
+            len_source=metaConfig.window_length,
+            len_target=metaConfig.window_length,
+            num_classes=metaConfig.window_length + 1,
+        )
+
 
 @dataclass
 class TrainingConfig:
     num_epochs: int = 100
-    learning_rate: float = 0.005
+    learning_rate: float = 0.01
     batch_size: int = 8192
     lambda_traffic_class: float = 500.0
-    lambda_transmission: float = 1000.0
-    lambda_context: float = 50.0
+    lambda_transmission: float = 5000.0
+    lambda_context: float = 100.0
     
     def __post_init__(self):
         """Validate training configuration parameters."""
@@ -76,27 +102,4 @@ class TrainingConfig:
             raise ValueError(f"lambda_context must be non-negative")
 
 
-@dataclass
-class ModelConfig:
-    input_size: int
-    output_size: int
-    len_source: int
-    len_target: int
-    num_classes: int
-    hidden_size: int = 64
-    num_layers: int = 5
-    dropout_rate: float = 0.8
-    degree: int = 3
-    dt : float = 0.01
 
-    @classmethod
-    def from_meta_config(cls, metaConfig: MetaConfig):
-        return cls(
-            input_size=metaConfig.dim_data,
-            output_size=metaConfig.window_length,
-            degree = metaConfig.degree,
-            dt = metaConfig.Ts,
-            len_source=metaConfig.window_length,
-            len_target=metaConfig.window_length,
-            num_classes=metaConfig.window_length + 1,
-        )

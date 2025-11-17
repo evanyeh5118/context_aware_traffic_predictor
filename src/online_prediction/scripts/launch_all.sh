@@ -65,6 +65,7 @@ try:
     csv_file = config['data']['csv_file']
     verbose = config['settings']['verbose']
     use_predictor = config['settings']['use_predictor']
+    duration_sec = config['settings'].get('duration_sec', 0)
     
     # Extract predictor configuration (optional)
     config_path = config.get('predictor', {}).get('config_path', '')
@@ -92,6 +93,7 @@ try:
     print(f'CSV_FILE=\"{csv_file}\"')
     print(f'VERBOSE=\"{verbose}\"')
     print(f'USE_PREDICTOR=\"{use_predictor}\"')
+    print(f'DURATION_SEC=\"{duration_sec}\"')
     print(f'CONFIG_PATH=\"{config_path}\"')
     print(f'MODEL_FOLDER_CONTEXT_AWARE=\"{model_folder_context_aware}\"')
     print(f'MODEL_FOLDER_CONTEXT_FREE=\"{model_folder_context_free}\"')
@@ -121,7 +123,7 @@ else
     eval "$(read_config)" 2>/dev/null || true
 fi
 
-export RELAY_IP RELAY_PORT REPLAY_REAL_TIMING TIME_SCALE VERBOSE CSV_FILE USE_PREDICTOR
+export RELAY_IP RELAY_PORT REPLAY_REAL_TIMING TIME_SCALE VERBOSE CSV_FILE USE_PREDICTOR DURATION_SEC
 export CONFIG_PATH MODEL_FOLDER_CONTEXT_AWARE MODEL_FOLDER_CONTEXT_FREE
 
 echo "Configuration:"
@@ -130,6 +132,7 @@ echo "  RELAY_IP=${RELAY_IP}  RELAY_PORT=${RELAY_PORT}"
 echo "  REPLAY_REAL_TIMING=${REPLAY_REAL_TIMING}  TIME_SCALE=${TIME_SCALE}"
 echo "  VERBOSE=${VERBOSE}"
 echo "  USE_PREDICTOR=${USE_PREDICTOR} (0=relay.py, 1=relay_predictor.py)"
+echo "  DURATION_SEC=${DURATION_SEC} (0=run until data ends)"
 if [ "$USE_PREDICTOR" = "1" ]; then
     echo ""
     echo "Predictor Configuration:"
@@ -195,8 +198,29 @@ echo "  Receiver: $RECEIVER_PID"
 echo "  Relay:    $RELAY_PID"
 echo "  Sender:   $SENDER_PID"
 echo ""
-echo -e "${YELLOW}Press Ctrl+C to stop all processes${NC}"
-echo ""
+
+# Set up automatic shutdown timer if duration is specified
+if [ "$DURATION_SEC" -gt 0 ]; then
+    echo -e "${YELLOW}Simulation will run for ${DURATION_SEC} seconds${NC}"
+    echo -e "${YELLOW}Press Ctrl+C to stop earlier${NC}"
+    echo ""
+    
+    # Capture the main script's PID
+    MAIN_PID=$$
+    
+    # Start background timer that will trigger cleanup
+    (
+        sleep "$DURATION_SEC"
+        echo ""
+        echo -e "${YELLOW}Duration of ${DURATION_SEC} seconds reached - stopping simulation...${NC}"
+        # Send SIGTERM to the main script to trigger cleanup
+        kill -TERM $MAIN_PID
+    ) &
+    TIMER_PID=$!
+else
+    echo -e "${YELLOW}Press Ctrl+C to stop all processes${NC}"
+    echo ""
+fi
 
 # Wait for all background processes
 wait

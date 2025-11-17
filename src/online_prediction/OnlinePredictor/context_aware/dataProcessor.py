@@ -6,9 +6,10 @@ import numpy as np
 
 # Reuse the same helpers used in offline preprocessing / relay predictor
 from src.context_aware.preprocessing.Helpers import (
-    interpolationData,
+    interpolateContextData,
     normalizeColumns
 )
+from src.context_aware.preprocessing.filter import MultiDimExpSmoother, KalmanFilter, smooth_timeseries_via_derivative
 from ..Helper import poly_fit_smoother
 
 class DataProcessor:
@@ -22,6 +23,10 @@ class DataProcessor:
         self.min_vals = config.min_vals #shape: (num_features,)
         self.max_vals = config.max_vals #shape: (num_features,)
         self.denom = self.max_vals - self.min_vals
+
+        self.smooth_fc = config.smooth_fc
+        #self.exp_filter = MultiDimExpSmoother(fc=self.smooth_fc, Ts=self.Ts)
+        self.filter = KalmanFilter(self.dim_data)
         
         self._context_buffer = deque(maxlen=self.window_length)
         self._timestamp_buffer = deque(maxlen=self.window_length)
@@ -82,9 +87,11 @@ class DataProcessor:
     def get_window_features(self) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
         context_no_smooth, flags, timestamps_bin = self.get_window_data()
 
-        context = interpolationData(flags, context_no_smooth, timestamps_bin)
-        context = normalizeColumns(context, self.max_vals, self.min_vals)
-        context = poly_fit_smoother(context, 3)
+        context_no_smooth = interpolateContextData(flags, context_no_smooth, timestamps_bin)
+        context_no_smooth = normalizeColumns(context_no_smooth, self.max_vals, self.min_vals)
+        #context = poly_fit_smoother(context_no_smooth, 3)
+        #context = self.filter.filter(context_no_smooth)
+        context, _ = smooth_timeseries_via_derivative(context_no_smooth, dt=self.Ts, lam=0.1)
         last_trans_sources = self._last_window_context.copy()
 
         if last_trans_sources.ndim == 1:

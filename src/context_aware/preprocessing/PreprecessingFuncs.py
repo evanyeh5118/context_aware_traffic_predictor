@@ -2,15 +2,17 @@ import numpy as np
 
 from .Helpers import FindLastTransmissionIdx, DiscretizedTraffic
 from ..config import MetaConfig
-from .filter import MultiDimExpSmoother, ChunkSmoother
 
 from .Helpers import normalizeColumns, interpolateContextData, smoothDataByFiltfilt
+from .filter import TikhonovSmoother
 
 class PreprocessingDataset:
     def __init__(self, metaConfig: MetaConfig):
         self.metaConfig = metaConfig
+        self.smoother = TikhonovSmoother(
+            self.metaConfig.dim_data, lam=0.1, dt=self.metaConfig.Ts)
 
-    def process(self, dataUnit, dataAugment=True, filterMode='filtfilt'):
+    def process(self, dataUnit, dataAugment=True, pre_filter=True):
         lenSource = self.metaConfig.window_length
         lenTarget = self.metaConfig.window_length
 
@@ -19,7 +21,12 @@ class PreprocessingDataset:
         timestamps = dataUnit.getTimestamps()
         contextDataDpDr = dataUnit.getContextData()
         contextDataNoSmooth = self._interpolateAndNormalize(contextDataDpDr, transmissionFlags, timestamps)
-        contextData = self._filter(contextDataNoSmooth, filterMode)
+        if pre_filter == True:
+            contextData = smoothDataByFiltfilt(
+                contextDataNoSmooth, self.metaConfig.smooth_fc, 1.0/self.metaConfig.Ts, 3
+            )
+        else:
+            contextData = contextDataNoSmooth
         (
             sources, targets, lastTranmittedContext, 
             transmissionsVector, trafficStatesSource, 
@@ -35,7 +42,10 @@ class PreprocessingDataset:
                     for i in range(int(lenSource/lenTarget), int(np.floor(lenDataset / lenTarget)))]
             
         for i, last_transmission_idx in idxs:
-            sources.append(contextData[i-lenSource:i])
+            source = contextData[i-lenSource:i]
+            if pre_filter != True:
+                source = self.smoother.smooth(source)
+            sources.append(source)
             targets.append(contextData[i:i+lenTarget])
             transmissionsVector.append(transmissionFlags[i:i+lenTarget])
             trafficStatesSource.append(np.sum(transmissionFlags[i-lenSource:i]))
@@ -61,22 +71,6 @@ class PreprocessingDataset:
             contextDataInterpolated, self.metaConfig.max_vals, self.metaConfig.min_vals)
         return contextDataNorm
 
-    def _filter(self, contextData, filterMode):
-        if filterMode == 'filtfilt':
-            contextDataSmoothed = smoothDataByFiltfilt(
-                contextData, self.metaConfig.smooth_fc, 1.0/self.metaConfig.Ts, 3
-            )
-        elif filterMode == 'exp':
-            filter = MultiDimExpSmoother(
-                fc=self.metaConfig.smooth_fc, Ts=self.metaConfig.Ts, buffer_size=500
-            )
-            contextDataSmoothed = filter.filter(contextData)
-        elif filterMode == 'chunk':
-            print(self.metaConfig.dim_data)
-            filter = ChunkSmoother(dim=self.metaConfig.dim_data)
-            contextDataSmoothed = filter.process(contextData)
-
-        return contextDataSmoothed
 
 
 

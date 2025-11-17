@@ -14,7 +14,7 @@ CSV_FILE = os.environ.get(
         "data",
         "processed",
         "dpdr",
-        "combined_flows_forward_20.csv",
+        "combined_flows_forward.csv",
     ),
 )
 RELAY_IP = os.environ.get("RELAY_IP", "127.0.0.1")

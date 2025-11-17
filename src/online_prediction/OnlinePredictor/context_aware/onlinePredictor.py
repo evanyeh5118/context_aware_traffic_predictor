@@ -60,7 +60,7 @@ class OnlinePredictor:
         self.gain = 1.0
         self.count = 0
         self.last_predicted_traffic = None
-        self.exp_filter = ExpFilter(alpha=0.4)
+        self.exp_filter = ExpFilter(alpha=1.0)
 
     def receive(self, data):
          self.dataProcessor.add_data_point(data)
