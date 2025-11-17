@@ -17,7 +17,7 @@ data:
 # Application Settings
 settings:
   verbose: 0 
-  use_predictor: 1 # 0 = relay.py (standard), 1 = relay_predictor.py (with ML predictions)
+  use_predictor: 0 # 0 = relay.py (standard), 1 = relay_predictor.py (with ML predictions)
   duration_sec: 60  # Simulation duration in seconds (0 = run until data ends)
 
 # ML Model Configuration (for relay_predictor.py)
