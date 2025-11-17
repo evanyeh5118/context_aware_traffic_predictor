@@ -1,3 +1,3 @@
-from .DatasetProcessing import DatasetConvertor
+from .DatasetConverter import DatasetConvertor
 from .DatasetReader import DatasetReader
 from .DeadbandReduction import DataReductionForDataUnit
