@@ -1,37 +1,46 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import random
+from dataclasses import dataclass
+from typing import List
 
-class DatasetReader:
-    def __init__(self):
-        self.dfRaw = []
-        self.dfRawNormal = []
-        self.taskIndexsList = []
-        self.readFileIndexsList = []
-        self.configuration()
+'''
+@dataclass
+class DatasetReaderConfig:
+    taskIndexsList: List[str]
+    readFileIndexsList: List[str]
 
-    def configuration(self):
+    def __post_init__(self):
         self.taskIndexsList = ["0", "1", "2"]
         self.readFileIndexsList = ["0", "1", "2", "3", "4","5","6","7","8","9","10"]
         self.file_tuple = [(task, file) for task in self.taskIndexsList for file in self.readFileIndexsList]
+'''
+class DatasetReader:
+    def __init__(self):
+        #self.config = DatasetReaderConfig()
+        self.dfLibrary = {}
 
-    def readRawDataset(self, folderPath, randomFlag=False):
-        self.dfRaw = None
-        file_tuples = list(self.file_tuple)
+    def readRawDataset(self, filename, task_idx, exp_idx):
+        df_read = pd.read_csv(filename)
+        df_ms = processTimeseriesData(df_read)
+        dfRaw = removeOutlier(df_ms)
+        self.dfLibrary[(task_idx, exp_idx)] = dfRaw
+
+    def getDataFrame(self, randomFlag=False):   
+        # Get the keys of the dfLibrary as a list of (task_idx, exp_idx) tuples
+        keys = list(self.dfLibrary.keys())
         if randomFlag:
-            random.shuffle(file_tuples)
-        for task, file in file_tuples:
-            df_read = pd.read_csv(
-                f"{folderPath}/Task{task}/exp{file}/motion.txt")
-            df_ms = processTimeseriesData(df_read)
-            if self.dfRaw is None:
-                self.dfRaw = df_ms
-            else:
-                self.dfRaw = concatenateDataframes(self.dfRaw, df_ms)
-        self.dfRaw = removeOutlier(self.dfRaw)
-        self.dfRawNormal = nomalization(self.dfRaw)
+            random.shuffle(keys)
+        else:
+            keys = sorted(keys, key=lambda x: (int(x[0]), int(x[1])))
+        dfs = [self.dfLibrary[k] for k in keys]
 
-    def visualization(self, fingerName, idxsObv=1000):
+        dfMerged = mergeDataFrames(dfs)
+        return dfMerged
+
+    def visualization(self, task_idx, exp_idx, fingerName, idxsObv=1000):
+        if (task_idx, exp_idx) not in self.dfLibrary:
+            ValueError("Invalid task_idx or exp_idx.")
         if fingerName in ["Thumb", "Index", "Middle", "Center"] is False:
             ValueError("Invlid Finger name.")
         # Create the figure and subplots
@@ -39,33 +48,26 @@ class DatasetReader:
         ax0 = fig.add_subplot(121)  # First subplot (1 row, 2 columns, 1st position)
         ax1 = fig.add_subplot(122, projection='3d')  # Second subplot (1 row, 2 columns, 2nd position)
 
+        df = self.dfLibrary[(task_idx, exp_idx)]
         # Plot the first subplot
-        ax0.plot(self.dfRaw[f"{fingerName}Force"][0:idxsObv])
+        ax0.plot(df[f"{fingerName}Force"][0:idxsObv])
         ax0.set_xlabel("Index")
         ax0.set_ylabel("Force")
-        ax0.set_title("Force (Thumb)")
+        ax0.set_title(f"Force ({fingerName})")
 
         # Plot the second subplot
-        x = self.dfRaw[f"{fingerName}X"][0:idxsObv]
-        y = self.dfRaw[f"{fingerName}Y"][0:idxsObv]
-        z = self.dfRaw[f"{fingerName}Z"][0:idxsObv]
+        x = df[f"{fingerName}X"][0:idxsObv]
+        y = df[f"{fingerName}Y"][0:idxsObv]
+        z = df[f"{fingerName}Z"][0:idxsObv]
         ax1.plot(x, z, y)
         ax1.set_xlabel('X Axis')
         ax1.set_ylabel('Y Axis')
         ax1.set_zlabel('Z Axis')
-        ax1.set_title("Position (Thumb)")
+        ax1.set_title(f"Position ({fingerName})")
 
         # Adjust layout
         plt.tight_layout()  # Ensures no overlap between subplots
         plt.show()
-
-def nomalization(df):
-    df_normalized = df.copy()
-    df_normalized.iloc[:,1:] = df_normalized.iloc[:,1:].apply(
-        lambda x: (x - x.min()) / (x.max() - x.min())
-    )
-    #df_normalized = df_normalized.iloc[:,:-9]
-    return df_normalized.copy()
 
 def removeOutlier(df):
     # 1. Calculate Q1, Q3, and IQR for each column
@@ -111,18 +113,15 @@ def processTimeseriesData(
         print(f"An error occurred during the transformation: {e}")
     return df
 
+def mergeDataFrames(dfs):
+    dfMerged = None
+    for df in dfs:
+        dfMerged = concatenateDataframes(dfMerged, df)
+    return dfMerged
+
 def concatenateDataframes(df1, df2):
-    """
-    Concatenates two dataframes with a time column in milliseconds as the first column.
-    Adjusts the time in the second dataframe to ensure consistent time progression in the concatenated result.
-
-    Parameters:
-    - df1: The first pandas DataFrame.
-    - df2: The second pandas DataFrame.
-
-    Returns:
-    - A concatenated DataFrame with consistent time in the first column.
-    """
+    if df1 is None:
+        return df2
     # Ensure the 'time' column is in numeric format (float for ms)
     df1.iloc[:, 0] = pd.to_numeric(df1.iloc[:, 0], errors='coerce')
     df2.iloc[:, 0] = pd.to_numeric(df2.iloc[:, 0], errors='coerce')

@@ -9,34 +9,13 @@ from .Dataunit import DataUnit
 
 
 class DatasetConvertor:    
-    def __init__(self, rawDatasetFolder: Union[str, Path], randomFlag=False):
-        self.rawDatasetFolder = Path(rawDatasetFolder) if isinstance(rawDatasetFolder, str) else rawDatasetFolder
-        self.dfRaw: Optional[pd.DataFrame] = None
+    def __init__(self, dfRaw: pd.DataFrame, randomFlag=False):
+        self.dfRaw: Optional[pd.DataFrame] = dfRaw
         self.dataUnits: Dict[str, DataUnit] = {}
-        self.datasetReader: Optional[DatasetReader] = None
-        self.randomFlag = randomFlag
-        self._initialize()
-
-    def _initialize(self) -> None:
-        self._readRawDataset()
-   
-    def _readRawDataset(self) -> None:
-        self.datasetReader = DatasetReader()
-        self.datasetReader.readRawDataset(str(self.rawDatasetFolder), randomFlag=self.randomFlag)
-        self.dfRaw = self.datasetReader.dfRaw
-
-    def getDataUnit(self, unitName: str) -> DataUnit:
-        if unitName not in self.dataUnits:
-            available_units = list(self.dataUnits.keys())
-            raise KeyError(
-                f"Unit name '{unitName}' not found. "
-                f"Available units: {available_units}"
-            )
-        return self.dataUnits[unitName]
 
     def addDataUnit(self, config) -> None:
         if self.dfRaw is None or self.dfRaw.empty:
-            raise ValueError("Raw dataset has not been loaded. Call _updateRawDataset first.")
+            raise ValueError("Raw dataset has not been loaded.")
         
         self.NAME = config.get("NAME")
         self.LEN_WINDOW = config.get("LEN_WINDOW")
@@ -55,4 +34,11 @@ class DatasetConvertor:
             mode=self.DPDR_PARAMS.get("mode"))
         self.dataUnits[self.NAME] = dataUnit
    
-
+    def getDataUnit(self, unitName: str) -> DataUnit:
+        if unitName not in self.dataUnits:
+            available_units = list(self.dataUnits.keys())
+            raise KeyError(
+                f"Unit name '{unitName}' not found. "
+                f"Available units: {available_units}"
+            )
+        return self.dataUnits[unitName]
