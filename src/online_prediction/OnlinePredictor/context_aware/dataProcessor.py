@@ -9,7 +9,7 @@ from src.context_aware.preprocessing.Helpers import (
     interpolateContextData,
     normalizeColumns
 )
-from src.context_aware.preprocessing.filter import MultiDimExpSmoother, KalmanFilter, smooth_timeseries_via_derivative
+from src.context_aware.preprocessing.filter import MultiDimExpSmoother, KalmanFilter, TikhonovSmoother
 from ..Helper import poly_fit_smoother
 
 class DataProcessor:
@@ -89,9 +89,8 @@ class DataProcessor:
 
         context_no_smooth = interpolateContextData(flags, context_no_smooth, timestamps_bin)
         context_no_smooth = normalizeColumns(context_no_smooth, self.max_vals, self.min_vals)
-        #context = poly_fit_smoother(context_no_smooth, 3)
+        context = poly_fit_smoother(context_no_smooth, 3)
         #context = self.filter.filter(context_no_smooth)
-        context, _ = smooth_timeseries_via_derivative(context_no_smooth, dt=self.Ts, lam=0.1)
         last_trans_sources = self._last_window_context.copy()
 
         if last_trans_sources.ndim == 1:
