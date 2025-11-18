@@ -1,9 +1,0 @@
-{
-  "NAME":"combined_flows_backward_20",
-  "LEN_WINDOW": 20,
-  "SAMPLING_TIME": 0.01,
-  "TRAIN_RATIO": 0.7,
-  "CONTEXT_IDXS": [4, 8, 12],
-  "DIM_DATA": 3,
-  "DPDR_PARAMS": {"dbParameter": 0.1, "alpha": 0.01, "mode": "fixed"}
-}

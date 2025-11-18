@@ -1,2 +1,0 @@
-from .OnlinePredictor.context_aware.onlinePredictor import OnlinePredictor as ContextAwareOnlinePredictor
-from .OnlinePredictor.context_free.onlinePredictor import OnlinePredictor as ContextFreeOnlinePredictor
