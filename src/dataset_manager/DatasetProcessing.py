@@ -42,13 +42,14 @@ class DatasetConvertor:
         self.LEN_WINDOW = config.get("LEN_WINDOW")
         self.CONTEXT_IDXS = config.get("CONTEXT_IDXS")
         self.DPDR_PARAMS = config.get("DPDR_PARAMS")
+        self.SAMPLING_TIME = config.get("SAMPLING_TIME")
         
         dataUnit = DataUnit()
         dataUnit.name = self.NAME
         dataUnit.lenWindow = self.LEN_WINDOW
         dataUnit.timestamps = self.dfRaw.iloc[:, 0].to_numpy()
         dataUnit.setContextData(self.dfRaw.iloc[:, self.CONTEXT_IDXS].to_numpy())
-        dataUnit.resampleContextData()
+        dataUnit.resampleContextData(target_Ts=self.SAMPLING_TIME)
         dataUnit.applyDpDr(
             dbParameter=self.DPDR_PARAMS.get("dbParameter"), 
             alpha=self.DPDR_PARAMS.get("alpha"), 

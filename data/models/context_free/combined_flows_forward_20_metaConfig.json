@@ -1,0 +1,9 @@
+{
+    "dim_data": 12,
+    "len_window": 20,
+    "len_source": 10,
+    "len_target": 1,
+    "train_ratio": 0.6,
+    "data_augment": true,
+    "Ts": 0.01
+}

@@ -132,12 +132,18 @@ class DataUnit:
         self.dataLength = int(context_arr.shape[0])
         self.dimFeatures = int(context_arr.shape[1])
         
-    def resampleContextData(self):  # self.contextData -> self.contextData
+    def resampleContextData(self, target_Ts=None):
         ts_arr = np.asarray(self.timestamps)
         if ts_arr.size < 2:
             raise ValueError("Not enough timestamps to infer sampling time Ts.")
-        self.Ts = round(float(np.mean(ts_arr[1:] - ts_arr[:-1])), 2)
-        (_, self.contextData) = resampleData(ts_arr, self.contextData, self.Ts)
+        
+        if target_Ts is not None:
+            self.Ts = target_Ts
+        else:
+            self.Ts = round(float(np.mean(ts_arr[1:] - ts_arr[:-1])), 2)
+        
+        (self.timestamps, self.contextData) = resampleData(ts_arr, self.contextData, self.Ts)
+        self.dataLength = int(self.contextData.shape[0])
 
     def applyDpDr(self, dbParameter=0.01, alpha=0.01, mode="fixed"):  # self.contextData -> self.contextDataDpDr
         self.contextDataDpDr, self.transmitionFlags = DataReductionForDataUnit(

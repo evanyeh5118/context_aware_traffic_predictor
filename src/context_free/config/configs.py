@@ -94,7 +94,7 @@ class TrainingConfig:
 class ModelConfig:
     input_size: int = 1
     output_size: int = 1
-    hidden_size: int = 128
+    hidden_size: int = 16
     num_layers: int = 2
 
     @classmethod
