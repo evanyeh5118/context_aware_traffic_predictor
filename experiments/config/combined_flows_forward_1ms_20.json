@@ -5,5 +5,9 @@
   "SAMPLING_TIME": 0.001,
   "CONTEXT_IDXS": [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15],
   "DIM_DATA": 12,
+<<<<<<< HEAD
   "DPDR_PARAMS": {"dbParameter": 0.002, "alpha": 0.002, "mode": "fixed"}
+=======
+  "DPDR_PARAMS": {"dbParameter": 0.01, "alpha": 0.01, "mode": "fixed"}
+>>>>>>> a91dd1f6cab19dd7702c4c0fd78c8f3aca76f13c
 }
