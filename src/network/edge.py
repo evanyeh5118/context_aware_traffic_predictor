@@ -21,7 +21,7 @@ from src.models import createModel
 from src.config import MetaConfig, ModelConfig
 
 # Get configuration from environment variables (set by launch script)
-configPath = os.path.join(_project_root, "config", "config.json")
+configPath = os.path.join(_project_root, "config", "motion_1ms_20.json")
 modelFolder = os.path.join(_project_root, "model")
 verbose_env = os.getenv('verbose', 0)
 
