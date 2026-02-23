@@ -88,11 +88,6 @@ All notebooks live under `experiments/notebooks/` and are organised by workflow 
 - Trained models and configs: `data/models/context_free/` and `data/models/context_aware/`
 - Evaluation metrics and plots are generated inline within the notebooks
 
-### Tips
-
-- **GPU** — Training uses CUDA automatically when available.
-- **Quick iteration** — Start with a smaller `LEN_WINDOW` (e.g., 20) in the experiment config.
-- **Paths** — Run notebooks from the project root so relative imports resolve correctly.
 
 ### Citation
 
